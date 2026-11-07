@@ -42,6 +42,7 @@ days: 7                                # 7 (default, settimana corrente) | 14
 start_expanded: false                  # true = calendario già aperto (sostituisce `view: calendar`)
 calendar_mode: week                    # week | next_week | month (periodo iniziale)
 show_view_toggle: true                 # piccolo chevron per espandere il calendario
+tile_min_width: 76                     # larghezza minima delle tessere in px (60–240); vuoto = automatica
 show_summary: true                     # barra «Prossimo»
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # opzionale
 ```
@@ -58,6 +59,8 @@ Da **Configura → Notifiche sul telefono** puoi attivare una notifica push all'
 - Servizio `garbage_view.send_test_notification` per provarla subito.
 
 ### Calendario grande
+Le **tessere si allargano in modo uniforme** per riempire la larghezza della card (mai sotto `tile_min_width`) e, se non ci stanno, vanno a capo con righe bilanciate: 5 tessere diventano 3 + 2, non 4 + 1, e ogni riga arriva fino ai bordi.
+
 Toccando il chevron (o con `start_expanded: true`; la vecchia `view: calendar` funziona ancora) la card espande sul posto una griglia lunedì→domenica con le icone dei rifiuti in ogni giorno. **Settimana / Prossima / Mese** scelgono il periodo, le frecce ‹ › navigano (anche nei mesi passati). Oggi è evidenziato; toccando un giorno vedi i nomi, e una legenda spiega le icone. Le ricorrenze sono calcolate nella card dalle regole esposte dal sensore, quindi non serve alcuna configurazione in più.
 
 | Mese · chiaro | Mese · scuro |
@@ -73,7 +76,7 @@ Lo stile è fatto di variabili CSS pubbliche:
 |---|---|
 | `--gv-font` | font |
 | `--gv-bg` / `--gv-text` / `--gv-text-secondary` | sfondo e testi |
-| `--gv-tile-bg` / `--gv-tile-size` | tessere |
+| `--gv-tile-bg` / `--gv-tile-size` / `--gv-tile-min-width` | tessere (dimensione icona/altezza e larghezza minima) |
 | `--gv-radius` / `--gv-gap` / `--gv-shadow` | forme e spazi |
 | `--gv-accent` | colore di evidenziazione |
 | `--gv-anim-duration` | durata animazioni |
@@ -142,6 +145,7 @@ days: 7                                # 7 (default, current week) | 14
 start_expanded: false                  # true = calendar already open (replaces `view: calendar`)
 calendar_mode: week                    # week | next_week | month (initial period)
 show_view_toggle: true                 # small chevron to expand the calendar
+tile_min_width: 76                     # minimum tile width in px (60–240); empty = automatic
 show_summary: true                     # "Next" bar
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # optional
 ```
@@ -158,12 +162,14 @@ From **Configure → Mobile notifications** you can enable a push notification t
 - Service `garbage_view.send_test_notification` to try it right away.
 
 ### Large calendar
+**Tiles stretch evenly** to fill the card width (never narrower than `tile_min_width`) and wrap into balanced rows when they don't fit: 5 tiles become 3 + 2, not 4 + 1, and every row reaches both edges.
+
 By tapping the chevron (or with `start_expanded: true`; the old `view: calendar` still works) the card expands in place to show a Monday→Sunday grid with the waste icons on each day. **Week / Next / Month** pick the period and the ‹ › arrows navigate (past months included). Today is highlighted; tap a day to see names, and a legend explains the icons. Recurrences are computed in the card from the rules exposed by the sensor, so no extra setup is needed.
 
 See the screenshots below (`docs/screenshots/calendario-*.png`).
 
 ### Customizing the style
-Styling is driven by public CSS variables (`--gv-font`, `--gv-bg`, `--gv-text`, `--gv-text-secondary`, `--gv-tile-bg`, `--gv-tile-size`, `--gv-radius`, `--gv-gap`, `--gv-accent`, `--gv-shadow`, `--gv-anim-duration`).
+Styling is driven by public CSS variables (`--gv-font`, `--gv-bg`, `--gv-text`, `--gv-text-secondary`, `--gv-tile-bg`, `--gv-tile-size`, `--gv-tile-min-width`, `--gv-radius`, `--gv-gap`, `--gv-accent`, `--gv-shadow`, `--gv-anim-duration`).
 
 1. **The card's `css` option**: only `--gv-*` properties are accepted, anything else is ignored for safety.
 2. **[card-mod](https://github.com/thomasloven/lovelace-card-mod)**: set the same variables under `card_mod.style` on `:host` (see the example above).
@@ -182,6 +188,12 @@ CI runs pytest, card tests, HACS validation and hassfest. To release: bump `vers
 | ![](docs/screenshots/apple-chiaro.png) | ![](docs/screenshots/apple-scuro.png) |
 | **HomeKit · light** | **HomeKit · dark** |
 | ![](docs/screenshots/homekit-chiaro.png) | ![](docs/screenshots/homekit-scuro.png) |
+
+Tessere che riempiono la larghezza (5 tessere: stretto e largo):
+
+| | |
+|---|---|
+| ![](docs/screenshots/tessere-5-stretto.png) | ![](docs/screenshots/tessere-5-largo.png) |
 
 ![Visual editor](docs/screenshots/editor.png)
 

@@ -2,6 +2,15 @@
 
 Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/). / Format based on Keep a Changelog.
 
+## [0.2.2] - 2026-11-07
+
+### Cambiato / Changed
+- **Le tessere riempiono tutta la larghezza della card**: si allargano in modo uniforme con una larghezza minima e, se non ci stanno, vanno a capo con **righe bilanciate** (5 tessere → 3 + 2 invece di 4 + 1; 7 → 3 + 2 + 2). Ogni riga arriva fino ai bordi, quindi non resta più spazio vuoto accanto a una tessera sola. Stile Apple/HomeKit, animazioni, tema chiaro/scuro e calendario espandibile non cambiano. / Tiles stretch evenly to fill the card width (with a minimum) and wrap into balanced rows; every row spans the full width, so a lone tile no longer leaves empty space.
+
+### Novità / Added
+- Opzione `tile_min_width` (px, 60–240; vuoto = automatica, come prima: 76 Apple / 88 HomeKit), anche nell'editor visuale, e variabile CSS `--gv-tile-min-width`. / New `tile_min_width` option (also in the visual editor) and `--gv-tile-min-width` CSS variable.
+- Test vitest e Playwright con 1–8 tessere a larghezze strette e larghe; nuovi screenshot. / Tests for 1–8 tiles at narrow/wide widths; new screenshots.
+
 ## [0.2.1] - 2026-11-07
 
 ### Cambiato / Changed

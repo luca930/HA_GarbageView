@@ -257,3 +257,61 @@ describe("registrazione", () => {
     expect(stub.entity).toBe("sensor.garbage_view_schedule");
   });
 });
+
+describe("tessere: colonne bilanciate e larghezza minima", () => {
+  const { tileRows, clampTileMin } = globalThis.__gv;
+
+  it("tileRows: 5 tessere dove ne starebbero 4 diventano 3 + 2, non 4 + 1", () => {
+    // 407px, minimo 76, gap 10 → ne starebbero 4 per riga
+    expect(tileRows(5, 407, 76, 10)).toEqual([3, 2]);
+    expect(tileRows(4, 407, 76, 10)).toEqual([4]);
+    expect(tileRows(6, 407, 76, 10)).toEqual([3, 3]);
+    expect(tileRows(7, 407, 76, 10)).toEqual([4, 3]);
+    expect(tileRows(8, 407, 76, 10)).toEqual([4, 4]);
+  });
+
+  it("tileRows: 7 tessere dove ne starebbero 3 diventano 3 + 2 + 2, non 3 + 3 + 1", () => {
+    expect(tileRows(7, 300, 76, 10)).toEqual([3, 2, 2]);
+  });
+
+  it("tileRows: poche tessere non creano colonne vuote e lo spazio stretto dà una colonna", () => {
+    expect(tileRows(1, 900, 76, 10)).toEqual([1]);
+    expect(tileRows(2, 900, 76, 10)).toEqual([2]);
+    expect(tileRows(3, 100, 76, 10)).toEqual([1, 1, 1]);
+    expect(tileRows(0, 900, 76, 10)).toEqual([]);
+    expect(tileRows(8, 900, 76, 10)).toEqual([8]);
+  });
+
+  it("tileRows: somma = n, righe ≤ quelle che ci stanno, differenza tra righe al massimo 1", () => {
+    for (let n = 1; n <= 12; n++) {
+      for (const w of [150, 280, 360, 407, 520, 700, 1000]) {
+        const fit = Math.max(1, Math.floor((w + 10) / (76 + 10)));
+        const rows = tileRows(n, w, 76, 10);
+        expect(rows.reduce((a, b) => a + b, 0)).toBe(n);
+        expect(Math.max(...rows)).toBeLessThanOrEqual(fit);
+        expect(Math.max(...rows) - Math.min(...rows)).toBeLessThanOrEqual(1);
+        expect(rows.length).toBe(Math.ceil(n / Math.min(fit, n)));
+      }
+    }
+  });
+
+  it("tile_min_width: valori validi (anche come stringa) sono limitati a 60–240, il resto è ignorato", () => {
+    expect(clampTileMin(100)).toBe(100);
+    expect(clampTileMin("120")).toBe(120);
+    expect(clampTileMin(10)).toBe(60);
+    expect(clampTileMin(9999)).toBe(240);
+    for (const bad of [undefined, null, "", "abc", NaN, {}, [], true]) expect(clampTileMin(bad)).toBeNull();
+  });
+
+  it("tile_min_width imposta --gv-tile-min-width; rimossa l'opzione torna al preset", () => {
+    const card = mountCard(makeState(), { tile_min_width: 110 });
+    expect(card.style.getPropertyValue("--gv-tile-min-width")).toBe("110px");
+    card.setConfig({ entity: "sensor.garbage_view_schedule" });
+    expect(card.style.getPropertyValue("--gv-tile-min-width")).toBe("");
+  });
+
+  it("tile_min_width non valido viene ignorato (nessuna variabile)", () => {
+    const card = mountCard(makeState(), { tile_min_width: "100px; color:red" });
+    expect(card.style.getPropertyValue("--gv-tile-min-width")).toBe("");
+  });
+});

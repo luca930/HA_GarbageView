@@ -16,7 +16,7 @@
  * dopo aver validato il valore con una regex.
  */
 
-const CARD_VERSION = "0.2.1";
+const CARD_VERSION = "0.2.2";
 const SUPPORTED_SCHEMA = 1;
 // Periodi iniziali del calendario grande.
 const CAL_MODES = ["week", "next_week", "month"];
@@ -92,6 +92,7 @@ const STYLES = `
     --gv-text-secondary: #6e6e73;
     --gv-tile-bg: #f2f2f7;
     --gv-tile-size: 76px;
+    --gv-tile-min-width: var(--gv-tile-size); /* larghezza minima di una tessera (opzione tile_min_width) */
     --gv-radius: 20px;
     --gv-gap: 10px;
     --gv-accent: #0a84ff;
@@ -136,10 +137,21 @@ const STYLES = `
   /* ---- Tessere dei tipi di rifiuto ----
      Minimal: un solo colore (--gv-accent). Le tessere sono neutre e attenuate;
      solo quelle di OGGI sono piene di accent, con alone e un "respiro" lento. */
+  /* Le tessere si allargano in modo uniforme fino a riempire la riga, mai sotto
+     --gv-tile-min-width; se non ci stanno vanno a capo. La card sceglie quante
+     tessere per riga (--gv-rc, per tessera) bilanciando le righe: niente tessera
+     sola in fondo, e ogni riga arriva fino ai bordi.
+     Senza misura (prima del primo layout) vale il solo vincolo di larghezza minima. */
   .types {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(var(--gv-tile-size), 1fr));
+    display: flex; flex-wrap: wrap;
     gap: var(--gv-gap);
+  }
+  .types > .tile {
+    flex: 1 1 var(--gv-tile-min-width);
+    min-width: var(--gv-tile-min-width);
+  }
+  .types[data-laid-out] > .tile {
+    flex-basis: calc((100% - (var(--gv-rc) - 1) * var(--gv-gap)) / var(--gv-rc) - .5px);
   }
   .tile {
     position: relative;
@@ -436,6 +448,29 @@ function occursOn(rule, date) {
   }
 }
 
+// Larghezza minima delle tessere: numero 60–240 px, altrimenti null (vale il valore del preset).
+const TILE_MIN = [60, 240];
+function clampTileMin(v) {
+  const n = typeof v === "string" && v.trim() !== "" ? Number(v) : v;
+  return typeof n === "number" && Number.isFinite(n) ? Math.min(TILE_MIN[1], Math.max(TILE_MIN[0], Math.round(n))) : null;
+}
+
+/**
+ * Come distribuire `n` tessere in righe, in una riga larga `width` px, con
+ * larghezza minima `min` e spazio `gap`: restituisce quante tessere mette ogni
+ * riga. Il numero di righe è il minimo necessario; le tessere si dividono nel
+ * modo più uniforme (le righe più piene prima): 5 dove ne starebbero 4 → 3 + 2
+ * (non 4 + 1), 7 dove ne starebbero 3 → 3 + 2 + 2 (non 3 + 3 + 1).
+ * Ogni riga poi si allarga fino ai bordi.
+ */
+function tileRows(n, width, min, gap) {
+  if (!(n > 0)) return [];
+  const fit = Math.max(1, Math.floor((width + gap) / (min + gap)));
+  const rows = Math.ceil(n / Math.min(fit, n));
+  const base = Math.floor(n / rows), extra = n % rows;
+  return Array.from({ length: rows }, (_, i) => base + (i < extra ? 1 : 0));
+}
+
 // Crea un elemento con classi e testo (sempre via textContent: niente HTML).
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -461,6 +496,39 @@ class GarbageViewCard extends HTMLElement {
     this._focusKey = null; // controllo da rifocalizzare dopo un re-render (tastiera)
     this._dir = 0; // direzione dello scorrimento (-1 indietro, 1 avanti)
     this._lastStateObj = undefined;
+    // Le colonne delle tessere dipendono dalla larghezza: si ricalcolano solo quando cambia.
+    this._tileW = -1;
+    this._ro = typeof ResizeObserver === "function" ? new ResizeObserver(() => this._layoutTiles()) : null;
+  }
+
+  connectedCallback() {
+    if (this._ro) this._ro.observe(this._content);
+    this._layoutTiles();
+  }
+
+  disconnectedCallback() {
+    if (this._ro) this._ro.disconnect();
+  }
+
+  // Distribuisce le tessere in righe bilanciate (--gv-rc su ogni tessera).
+  _layoutTiles() {
+    const grid = this._root.querySelector(".types");
+    if (!grid) return;
+    const first = grid.firstElementChild;
+    const width = grid.clientWidth;
+    if (!first || !width) return;
+    const cs = getComputedStyle(grid);
+    const min = parseFloat(getComputedStyle(first).minWidth) || 76;
+    const gap = parseFloat(cs.columnGap) || 0;
+    const key = `${width}|${min}|${gap}|${grid.childElementCount}`;
+    if (key === this._tileKey) return;
+    this._tileKey = key;
+    // Ogni tessera sa in quante ne condivide la riga (--gv-rc): da lì la sua larghezza.
+    let i = 0;
+    for (const count of tileRows(grid.childElementCount, width, min, gap)) {
+      for (let k = 0; k < count; k++) grid.children[i++].style.setProperty("--gv-rc", String(count));
+    }
+    grid.setAttribute("data-laid-out", "");
   }
 
   // Chiamato da HA con la configurazione YAML della card.
@@ -475,6 +543,7 @@ class GarbageViewCard extends HTMLElement {
       start_expanded: config.start_expanded === true || (config.start_expanded === undefined && config.view === "calendar"),
       calendar_mode: CAL_MODES.includes(config.calendar_mode) ? config.calendar_mode : "week",
       show_view_toggle: config.show_view_toggle !== false,
+      tile_min_width: clampTileMin(config.tile_min_width),
       style,
       entity: String(config.entity),
       css: config.css,
@@ -489,6 +558,7 @@ class GarbageViewCard extends HTMLElement {
       this._appliedView = { expanded: this._config.start_expanded, mode: this._config.calendar_mode };
     }
     this.setAttribute("data-style", style);
+    this._applyTileMin();
     this._applyCustomCss();
     this._lastStateObj = undefined; // forza il re-render
     this._render();
@@ -532,6 +602,14 @@ class GarbageViewCard extends HTMLElement {
     this._dir = dir;
     this._selected = null;
     this._render();
+  }
+
+  // tile_min_width (px) → variabile --gv-tile-min-width; senza opzione vale quella del preset.
+  _applyTileMin() {
+    const v = this._config.tile_min_width;
+    if (v === null) this.style.removeProperty("--gv-tile-min-width");
+    else this.style.setProperty("--gv-tile-min-width", `${v}px`);
+    this._tileKey = null;
   }
 
   // Applica le variabili --gv-* dell'opzione `css` (già filtrate).
@@ -636,6 +714,8 @@ class GarbageViewCard extends HTMLElement {
     if (this._config.show_summary) frag.append(this._buildSummary(a.next_item, byId, t));
 
     this._content.replaceChildren(frag);
+    this._tileKey = null;
+    this._layoutTiles();
 
     // Dopo il re-render il controllo premuto non esiste più: rimettiamo il focus sul suo "gemello".
     if (this._focusKey) {
@@ -975,6 +1055,7 @@ const EDITOR_STRINGS = {
     days: "Giorni mostrati nella striscia",
     days_7: "7 giorni",
     days_14: "14 giorni",
+    tile_min_width: "Larghezza minima delle tessere (px, vuoto = automatica)",
     start_expanded: "Apri con il calendario già espanso",
     calendar_mode: "Periodo iniziale del calendario",
     mode_week: "Questa settimana",
@@ -999,6 +1080,7 @@ const EDITOR_STRINGS = {
     days: "Days shown in the strip",
     days_7: "7 days",
     days_14: "14 days",
+    tile_min_width: "Minimum tile width (px, empty = automatic)",
     start_expanded: "Start with the calendar expanded",
     calendar_mode: "Calendar starting period",
     mode_week: "This week",
@@ -1019,7 +1101,7 @@ const EDITOR_STYLES = `
   :host { display: block; font-family: var(--paper-font-body1_-_font-family, sans-serif); }
   .form { display: grid; gap: 16px; }
   label.field { display: grid; gap: 6px; font-size: .85rem; color: var(--secondary-text-color, #6e6e73); }
-  input[type="text"], select, textarea {
+  input[type="text"], input[type="number"], select, textarea {
     font: inherit; font-size: 1rem; color: var(--primary-text-color, #1d1d1f);
     background: var(--card-background-color, #fff);
     border: 1px solid var(--divider-color, #c7c7cc); border-radius: 10px;
@@ -1102,6 +1184,14 @@ class GarbageViewCardEditor extends HTMLElement {
     check.append(this._showSummary, el("span", null, t.show_summary));
     this._form.append(check);
 
+    this._tileMin = el("input");
+    this._tileMin.type = "number";
+    this._tileMin.min = String(TILE_MIN[0]);
+    this._tileMin.max = String(TILE_MIN[1]);
+    this._tileMin.step = "4";
+    this._tileMin.inputMode = "numeric";
+    this._field(t.tile_min_width, this._tileMin);
+
     this._mode = this._select([["week", t.mode_week], ["next_week", t.mode_next_week], ["month", t.mode_month]]);
     this._field(t.calendar_mode, this._mode);
 
@@ -1129,6 +1219,7 @@ class GarbageViewCardEditor extends HTMLElement {
     this._title.addEventListener("input", () => this._emit());
     this._styleSel.addEventListener("change", () => this._emit());
     this._days.addEventListener("change", () => this._emit());
+    this._tileMin.addEventListener("input", () => this._emit());
     this._startExpanded.addEventListener("change", () => this._emit());
     this._mode.addEventListener("change", () => this._emit());
     this._showToggle.addEventListener("change", () => this._emit());
@@ -1175,6 +1266,7 @@ class GarbageViewCardEditor extends HTMLElement {
     if (active !== this._title) this._title.value = c.title || "";
     this._styleSel.value = c.style === "homekit" ? "homekit" : "apple";
     this._days.value = Number(c.days) === 14 ? "14" : "7";
+    if (active !== this._tileMin) this._tileMin.value = clampTileMin(c.tile_min_width) ?? "";
     this._startExpanded.checked = c.start_expanded === true || (c.start_expanded === undefined && c.view === "calendar");
     this._mode.value = CAL_MODES.includes(c.calendar_mode) ? c.calendar_mode : "week";
     this._showToggle.checked = c.show_view_toggle !== false;
@@ -1204,6 +1296,7 @@ class GarbageViewCardEditor extends HTMLElement {
     set("title", this._title.value, this._title.value.trim() !== "");
     set("style", this._styleSel.value, true);
     set("days", 14, this._days.value === "14"); // 7 è il default
+    set("tile_min_width", clampTileMin(this._tileMin.value), clampTileMin(this._tileMin.value) !== null);
     delete config.view; // opzione 0.2.0, sostituita da start_expanded
     set("start_expanded", true, this._startExpanded.checked); // false è il default
     set("calendar_mode", this._mode.value, this._mode.value !== "week"); // week è il default
@@ -1251,4 +1344,4 @@ console.info(`%c GARBAGE-VIEW-CARD %c ${CARD_VERSION} `, "background:#0a84ff;col
 
 // Esportati solo per i test unitari (in HA il file è caricato come script classico:
 // `globalThis.__gv` non dà fastidio e non espone nulla di sensibile).
-globalThis.__gv = { occursOn, parseDate };
+globalThis.__gv = { occursOn, parseDate, tileRows, clampTileMin };
