@@ -381,6 +381,23 @@ describe("tessere: colonne bilanciate e larghezza minima", () => {
     for (const bad of [undefined, null, "", "abc", NaN, {}, [], true]) expect(clampTileMin(bad)).toBeNull();
   });
 
+  it("font_scale: limitato a 0.8–1.5, il resto vale 1", () => {
+    const { clampFontScale } = globalThis.__gv;
+    expect(clampFontScale(1.2)).toBe(1.2);
+    expect(clampFontScale("1,3")).toBe(1.3);
+    expect(clampFontScale(0.1)).toBe(0.8);
+    expect(clampFontScale(9)).toBe(1.5);
+    for (const bad of [undefined, null, "", "abc", "1.2; color:red", NaN]) expect(clampFontScale(bad)).toBe(1);
+  });
+
+  it("font_scale imposta --gv-font-scale; 1 o assente non lascia variabili", () => {
+    const card = mountCard(makeState(), { font_scale: 1.25 });
+    expect(card.style.getPropertyValue("--gv-font-scale")).toBe("1.25");
+    card.setConfig({ ...card._config, entity: card._config.entity, font_scale: 1 });
+    expect(card.style.getPropertyValue("--gv-font-scale")).toBe("");
+    expect(mountCard(makeState(), { font_scale: "x" }).style.getPropertyValue("--gv-font-scale")).toBe("");
+  });
+
   it("tile_min_width imposta --gv-tile-min-width; rimossa l'opzione torna al preset", () => {
     const card = mountCard(makeState(), { tile_min_width: 110 });
     expect(card.style.getPropertyValue("--gv-tile-min-width")).toBe("110px");

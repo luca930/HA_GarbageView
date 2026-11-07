@@ -16,7 +16,7 @@
  * dopo aver validato il valore con una regex.
  */
 
-const CARD_VERSION = "0.2.2";
+const CARD_VERSION = "0.2.3";
 const SUPPORTED_SCHEMA = 1;
 // Periodi iniziali del calendario grande.
 const CAL_MODES = ["week", "next_week", "month"];
@@ -95,7 +95,8 @@ const STYLES = `
     --gv-text: #1d1d1f;
     --gv-text-secondary: #6e6e73;
     --gv-tile-bg: #f2f2f7;
-    --gv-tile-size: 76px;
+    --gv-tile-size: 96px;
+    --gv-font-scale: 1; /* moltiplicatore dei testi (opzione font_scale) */
     --gv-tile-min-width: var(--gv-tile-size); /* larghezza minima di una tessera (opzione tile_min_width) */
     --gv-radius: 20px;
     --gv-gap: 10px;
@@ -107,7 +108,7 @@ const STYLES = `
   /* HomeKit: tessere più grandi, angoli molto arrotondati, ombra più morbida */
   :host([data-style="homekit"]) {
     --gv-tile-bg: #ffffff;
-    --gv-tile-size: 88px;
+    --gv-tile-size: 108px;
     --gv-radius: 26px;
     --gv-gap: 12px;
     --gv-accent: #ff9f0a;
@@ -135,8 +136,8 @@ const STYLES = `
     box-sizing: border-box;
   }
   .header { display: flex; align-items: baseline; justify-content: space-between; margin: 0 4px 12px; }
-  .title { font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; margin: 0; }
-  .summary { font-size: .85rem; color: var(--gv-text-secondary); }
+  .title { font-size: calc(1.35rem * var(--gv-font-scale)); font-weight: 600; letter-spacing: -.01em; margin: 0; }
+  .summary { font-size: calc(1rem * var(--gv-font-scale)); color: var(--gv-text-secondary); }
 
   /* ---- Tessere dei tipi di rifiuto ----
      Minimal: un solo colore (--gv-accent). Le tessere sono neutre e attenuate;
@@ -174,10 +175,10 @@ const STYLES = `
     animation: gv-pop var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1) both;
     animation-delay: calc(var(--i, 0) * 40ms);
   }
-  .tile .icon { --mdc-icon-size: 36px; font-size: 1.8rem; line-height: 1; font-weight: 700; display: flex; }
-  .tile .name { font-size: .78rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; overflow-wrap: anywhere; }
-  .tile .badge { font-size: .78rem; font-weight: 600; padding: 3px 12px; border-radius: 999px; background: rgba(128, 128, 128, .18); color: var(--gv-text); }
-  .tile .when { font-size: .72rem; }
+  .tile .icon { --mdc-icon-size: calc(40px * var(--gv-font-scale)); font-size: calc(2rem * var(--gv-font-scale)); line-height: 1; font-weight: 700; display: flex; }
+  .tile .name { font-size: calc(0.92rem * var(--gv-font-scale)); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; overflow-wrap: anywhere; }
+  .tile .badge { font-size: calc(0.92rem * var(--gv-font-scale)); font-weight: 600; padding: 3px 12px; border-radius: 999px; background: rgba(128, 128, 128, .18); color: var(--gv-text); }
+  .tile .when { font-size: calc(0.86rem * var(--gv-font-scale)); }
   /* Prossimo ritiro (quando oggi non c'è nulla): normale opacità + bordo accent sottile */
   .tile.next { opacity: 1; box-shadow: inset 0 0 0 2px var(--gv-accent); }
   .tile.next .icon { color: var(--gv-accent); }
@@ -204,13 +205,13 @@ const STYLES = `
     cursor: pointer; border-radius: 10px; padding: 2px 0;
   }
   .day:focus-visible { outline: 3px solid var(--gv-accent); outline-offset: 1px; }
-  .day .dow { font-size: .68rem; color: var(--gv-text-secondary); }
+  .day .dow { font-size: calc(0.82rem * var(--gv-font-scale)); color: var(--gv-text-secondary); }
   .day .cell {
     width: 100%; min-height: 44px;      /* altezza >= 44px: target tocco comodo */
     display: flex; align-items: center; justify-content: center;
     border-radius: 8px; box-sizing: border-box;
     background: var(--gv-tile-bg); color: var(--gv-text-secondary);
-    font-size: .8rem; font-weight: 600;
+    font-size: calc(0.95rem * var(--gv-font-scale)); font-weight: 600;
     transition: transform var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1);
   }
   .day:hover .cell { transform: translateY(-2px); }
@@ -221,7 +222,7 @@ const STYLES = `
   .day[aria-pressed="true"] .cell { box-shadow: 0 0 0 2px var(--gv-text-secondary); }
 
   /* ---- Dettaglio del giorno toccato ---- */
-  .detail { margin: 12px 4px 0; font-size: .9rem; animation: gv-fade var(--gv-anim-duration) ease both; }
+  .detail { margin: 12px 4px 0; font-size: calc(1.05rem * var(--gv-font-scale)); animation: gv-fade var(--gv-anim-duration) ease both; }
   .detail:empty { display: none; }
   .detail .d-title { font-weight: 600; margin-bottom: 6px; text-transform: capitalize; }
   .detail ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -240,7 +241,7 @@ const STYLES = `
     all: unset; box-sizing: border-box; cursor: pointer;
     min-height: 34px; padding: 0 14px; border-radius: 999px;
     display: inline-flex; align-items: center; justify-content: center;
-    font-size: .8rem; font-weight: 600; color: var(--gv-text-secondary);
+    font-size: calc(0.95rem * var(--gv-font-scale)); font-weight: 600; color: var(--gv-text-secondary);
     transition: background var(--gv-anim-duration) ease, color var(--gv-anim-duration) ease,
                 box-shadow var(--gv-anim-duration) ease;
   }
@@ -291,20 +292,20 @@ const STYLES = `
   }
   .nav button:hover { background: var(--gv-tile-bg); }
   .nav button:active { transform: scale(.88); }
-  .range { min-width: 8.5em; text-align: center; font-weight: 600; font-size: 1rem; letter-spacing: -.01em; }
+  .range { min-width: 8.5em; text-align: center; font-weight: 600; font-size: calc(1.15rem * var(--gv-font-scale)); letter-spacing: -.01em; }
 
   .cal-head, .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
-  .cal-head span { text-align: center; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gv-text-secondary); padding-bottom: 4px; }
+  .cal-head span { text-align: center; font-size: calc(0.82rem * var(--gv-font-scale)); text-transform: uppercase; letter-spacing: .05em; color: var(--gv-text-secondary); padding-bottom: 4px; }
   /* La griglia scivola dentro dalla direzione di navigazione (--gv-dir) */
   .cal-grid { animation: gv-slide var(--gv-anim-duration) ease both; }
   .cal-day {
     all: unset; box-sizing: border-box; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; gap: 4px;
-    min-height: 64px; padding: 6px 2px; border-radius: 12px;
+    min-height: calc(72px * var(--gv-font-scale)); padding: 6px 2px; border-radius: 12px;
     background: var(--gv-tile-bg); color: var(--gv-text);
     transition: transform var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1), box-shadow var(--gv-anim-duration) ease;
   }
-  .cal.week .cal-day { min-height: 110px; padding-top: 10px; }
+  .cal.week .cal-day { min-height: calc(120px * var(--gv-font-scale)); padding-top: 10px; }
   .cal-day:hover { transform: translateY(-2px); }
   .cal-day:active { transform: scale(.95); }
   .cal-day:focus-visible { outline: 3px solid var(--gv-accent); outline-offset: 1px; }
@@ -313,35 +314,35 @@ const STYLES = `
   .cal-day.past { opacity: .5; }
   .cal-day.out { opacity: .3; }
   .cal-day .num {
-    min-width: 26px; height: 26px; padding: 0 4px; box-sizing: border-box;
+    min-width: calc(30px * var(--gv-font-scale)); height: calc(30px * var(--gv-font-scale)); padding: 0 4px; box-sizing: border-box;
     display: inline-flex; align-items: center; justify-content: center;
-    border-radius: 999px; font-size: .85rem; font-weight: 600; color: var(--gv-text-secondary);
+    border-radius: 999px; font-size: calc(1rem * var(--gv-font-scale)); font-weight: 600; color: var(--gv-text-secondary);
   }
   .cal-day.today { background: color-mix(in srgb, var(--gv-accent) 14%, var(--gv-tile-bg)); }
   .cal-day.today .num { background: var(--gv-accent); color: #fff; animation: gv-ring 2.8s ease-in-out 1s infinite; }
   /* Icone dei rifiuti del giorno: un solo colore (accent), nessun colore per tipo */
   .cal-icons { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 100%; }
-  .cal-icons .icon { --mdc-icon-size: 16px; font-size: .7rem; font-weight: 700; display: flex; color: var(--gv-accent); }
-  .cal.week .cal-icons .icon { --mdc-icon-size: 22px; font-size: .9rem; }
-  .cal-icons .more { font-size: .65rem; font-weight: 600; color: var(--gv-text-secondary); align-self: center; }
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 12px 4px 0; font-size: .78rem; color: var(--gv-text-secondary); }
+  .cal-icons .icon { --mdc-icon-size: calc(18px * var(--gv-font-scale)); font-size: calc(0.85rem * var(--gv-font-scale)); font-weight: 700; display: flex; color: var(--gv-accent); }
+  .cal.week .cal-icons .icon { --mdc-icon-size: calc(24px * var(--gv-font-scale)); font-size: calc(1.05rem * var(--gv-font-scale)); }
+  .cal-icons .more { font-size: calc(0.78rem * var(--gv-font-scale)); font-weight: 600; color: var(--gv-text-secondary); align-self: center; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 12px 4px 0; font-size: calc(0.92rem * var(--gv-font-scale)); color: var(--gv-text-secondary); }
   .legend span { display: inline-flex; align-items: center; gap: 4px; }
-  .legend .icon { --mdc-icon-size: 16px; font-size: .7rem; font-weight: 700; display: flex; color: var(--gv-accent); }
+  .legend .icon { --mdc-icon-size: calc(18px * var(--gv-font-scale)); font-size: calc(0.85rem * var(--gv-font-scale)); font-weight: 700; display: flex; color: var(--gv-accent); }
 
   /* ---- Barra riepilogo "Prossimo" ---- */
   .summary-bar {
     margin-top: 14px; padding: 12px 16px; border-radius: var(--gv-radius);
     background: var(--gv-tile-bg); display: flex; align-items: center; gap: 12px;
-    font-size: .95rem; animation: gv-fade var(--gv-anim-duration) ease both;
+    font-size: calc(1.1rem * var(--gv-font-scale)); animation: gv-fade var(--gv-anim-duration) ease both;
   }
-  .summary-bar .icon { color: var(--gv-accent); --mdc-icon-size: 26px; font-size: 1.3rem; font-weight: 700; display: flex; }
+  .summary-bar .icon { color: var(--gv-accent); --mdc-icon-size: calc(28px * var(--gv-font-scale)); font-size: calc(1.4rem * var(--gv-font-scale)); font-weight: 700; display: flex; }
   .summary-bar .txt { color: var(--gv-text-secondary); }
   .summary-bar strong { color: var(--gv-text); }
   /* Con il sensore >= 0.2.2: spenta finché non è ora di mettere fuori, poi accesa */
   .summary-bar.muted .icon { color: var(--gv-text-secondary); opacity: .7; }
   .summary-bar.due { box-shadow: inset 0 0 0 2px var(--gv-accent); }
 
-  .message { padding: 16px; color: var(--gv-text-secondary); font-size: .9rem; }
+  .message { padding: 16px; color: var(--gv-text-secondary); font-size: calc(1.05rem * var(--gv-font-scale)); }
 
   /* ---- Animazioni ---- */
   @keyframes gv-pop   { from { opacity: 0; transform: scale(.88); } }
@@ -462,6 +463,13 @@ function clampTileMin(v) {
   return typeof n === "number" && Number.isFinite(n) ? Math.min(TILE_MIN[1], Math.max(TILE_MIN[0], Math.round(n))) : null;
 }
 
+// Scala dei testi: 0.8–1.5, altrimenti 1 (si applica sopra i nuovi default più grandi).
+const FONT_SCALE = [0.8, 1.5];
+function clampFontScale(v) {
+  const n = typeof v === "string" && v.trim() !== "" ? Number(v.replace(",", ".")) : v;
+  return typeof n === "number" && Number.isFinite(n) ? Math.min(FONT_SCALE[1], Math.max(FONT_SCALE[0], Math.round(n * 100) / 100)) : 1;
+}
+
 /**
  * Come distribuire `n` tessere in righe, in una riga larga `width` px, con
  * larghezza minima `min` e spazio `gap`: restituisce quante tessere mette ogni
@@ -551,6 +559,7 @@ class GarbageViewCard extends HTMLElement {
       calendar_mode: CAL_MODES.includes(config.calendar_mode) ? config.calendar_mode : "week",
       show_view_toggle: config.show_view_toggle !== false,
       tile_min_width: clampTileMin(config.tile_min_width),
+      font_scale: clampFontScale(config.font_scale),
       style,
       entity: String(config.entity),
       css: config.css,
@@ -566,6 +575,7 @@ class GarbageViewCard extends HTMLElement {
     }
     this.setAttribute("data-style", style);
     this._applyTileMin();
+    this._applyFontScale();
     this._applyCustomCss();
     this._lastStateObj = undefined; // forza il re-render
     this._render();
@@ -616,6 +626,14 @@ class GarbageViewCard extends HTMLElement {
     const v = this._config.tile_min_width;
     if (v === null) this.style.removeProperty("--gv-tile-min-width");
     else this.style.setProperty("--gv-tile-min-width", `${v}px`);
+    this._tileKey = null;
+  }
+
+  // font_scale → variabile --gv-font-scale (1 = default, già più grande della 0.2.2).
+  _applyFontScale() {
+    const v = this._config.font_scale;
+    if (v === 1) this.style.removeProperty("--gv-font-scale");
+    else this.style.setProperty("--gv-font-scale", String(v));
     this._tileKey = null;
   }
 
@@ -1087,6 +1105,7 @@ const EDITOR_STRINGS = {
     days_7: "7 giorni",
     days_14: "14 giorni",
     tile_min_width: "Larghezza minima delle tessere (px, vuoto = automatica)",
+    font_scale: "Dimensione del testo (0,8–1,5; 1 = predefinita)",
     start_expanded: "Apri con il calendario già espanso",
     calendar_mode: "Periodo iniziale del calendario",
     mode_week: "Questa settimana",
@@ -1112,6 +1131,7 @@ const EDITOR_STRINGS = {
     days_7: "7 days",
     days_14: "14 days",
     tile_min_width: "Minimum tile width (px, empty = automatic)",
+    font_scale: "Text size (0.8–1.5; 1 = default)",
     start_expanded: "Start with the calendar expanded",
     calendar_mode: "Calendar starting period",
     mode_week: "This week",
@@ -1223,6 +1243,14 @@ class GarbageViewCardEditor extends HTMLElement {
     this._tileMin.inputMode = "numeric";
     this._field(t.tile_min_width, this._tileMin);
 
+    this._fontScale = el("input");
+    this._fontScale.type = "number";
+    this._fontScale.min = String(FONT_SCALE[0]);
+    this._fontScale.max = String(FONT_SCALE[1]);
+    this._fontScale.step = "0.05";
+    this._fontScale.inputMode = "decimal";
+    this._field(t.font_scale, this._fontScale);
+
     this._mode = this._select([["week", t.mode_week], ["next_week", t.mode_next_week], ["month", t.mode_month]]);
     this._field(t.calendar_mode, this._mode);
 
@@ -1251,6 +1279,7 @@ class GarbageViewCardEditor extends HTMLElement {
     this._styleSel.addEventListener("change", () => this._emit());
     this._days.addEventListener("change", () => this._emit());
     this._tileMin.addEventListener("input", () => this._emit());
+    this._fontScale.addEventListener("input", () => this._emit());
     this._startExpanded.addEventListener("change", () => this._emit());
     this._mode.addEventListener("change", () => this._emit());
     this._showToggle.addEventListener("change", () => this._emit());
@@ -1298,6 +1327,7 @@ class GarbageViewCardEditor extends HTMLElement {
     this._styleSel.value = c.style === "homekit" ? "homekit" : "apple";
     this._days.value = Number(c.days) === 14 ? "14" : "7";
     if (active !== this._tileMin) this._tileMin.value = clampTileMin(c.tile_min_width) ?? "";
+    if (active !== this._fontScale) this._fontScale.value = clampFontScale(c.font_scale) === 1 ? "" : clampFontScale(c.font_scale);
     this._startExpanded.checked = c.start_expanded === true || (c.start_expanded === undefined && c.view === "calendar");
     this._mode.value = CAL_MODES.includes(c.calendar_mode) ? c.calendar_mode : "week";
     this._showToggle.checked = c.show_view_toggle !== false;
@@ -1328,6 +1358,7 @@ class GarbageViewCardEditor extends HTMLElement {
     set("style", this._styleSel.value, true);
     set("days", 14, this._days.value === "14"); // 7 è il default
     set("tile_min_width", clampTileMin(this._tileMin.value), clampTileMin(this._tileMin.value) !== null);
+    set("font_scale", clampFontScale(this._fontScale.value), this._fontScale.value.trim() !== "" && clampFontScale(this._fontScale.value) !== 1);
     delete config.view; // opzione 0.2.0, sostituita da start_expanded
     set("start_expanded", true, this._startExpanded.checked); // false è il default
     set("calendar_mode", this._mode.value, this._mode.value !== "week"); // week è il default
@@ -1375,4 +1406,4 @@ console.info(`%c GARBAGE-VIEW-CARD %c ${CARD_VERSION} `, "background:#0a84ff;col
 
 // Esportati solo per i test unitari (in HA il file è caricato come script classico:
 // `globalThis.__gv` non dà fastidio e non espone nulla di sensibile).
-globalThis.__gv = { occursOn, parseDate, tileRows, clampTileMin };
+globalThis.__gv = { occursOn, parseDate, tileRows, clampTileMin, clampFontScale };

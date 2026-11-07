@@ -2,6 +2,16 @@
 
 Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/). / Format based on Keep a Changelog.
 
+## [0.2.3] - 2026-11-07
+
+### Novità / Added
+- **Font più grandi di default** in entrambi i preset (nome e badge delle tessere, data, giorni della settimana, numeri dei giorni, barra «Prossimo», calendario, legenda, titolo; anche icone e tessere un po' più grandi: larghezza minima 96 px Apple / 108 px HomeKit). Stile minimal, layout bilanciato e calendario espandibile invariati. / Larger default text in both presets.
+- Opzione `font_scale` (0,8–1,5, default 1, applicata sopra i nuovi default) via variabile CSS `--gv-font-scale`, anche nell'editor visuale. / New `font_scale` option (also in the visual editor).
+- Test vitest e Playwright: nessun overflow con nomi lunghi, 1–8 tessere, scala 1 e 1.5; screenshot aggiornati.
+
+### Cambiato / Changed
+- La larghezza minima automatica delle tessere passa da 76/88 px a 96/108 px per far stare il testo più grande: con `tile_min_width` esplicito non cambia nulla.
+
 ## [0.2.2] - 2026-11-07
 
 ### Novità / Added
