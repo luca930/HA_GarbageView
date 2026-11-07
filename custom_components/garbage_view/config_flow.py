@@ -191,7 +191,7 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             preset = user_input.get("preset")
             self._draft = {}
-            if preset in PRESET_ICONS:  # valori sconosciuti ricadono su «personalizzato»
+            if preset in PRESET_ICONS:  # il selettore rifiuta già id sconosciuti; «custom» non precompila nulla
                 self._draft = {"name": await self._preset_name(preset), "icon": PRESET_ICONS[preset]}
             return await self.async_step_details()
         schema = vol.Schema({vol.Required("preset", default=CUSTOM_PRESET): _PRESET})
