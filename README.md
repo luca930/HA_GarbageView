@@ -85,7 +85,7 @@ La CI esegue pytest, test della card, validazione HACS e hassfest. Per rilasciar
 A HACS-installable Home Assistant integration that shows **what to put out today and in the coming days**, with an Apple / HomeKit-style Lovelace card. Everything runs locally: no network, no account.
 
 ### Features
-- One tile per waste type with an "Today / Tomorrow / N days" badge and date.
+- One tile per waste type with a "Today / Tomorrow / N days" badge and date.
 - 7- or 14-day strip and a "Next" summary bar.
 - Recurrences: weekly, every N weeks, nth weekday of the month (including "last"), day of month.
 - Waste types managed from the UI (name, icon, color, rule), no YAML needed.
