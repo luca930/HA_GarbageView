@@ -26,7 +26,7 @@ describe("rendering base", () => {
     expect(today).toHaveLength(1);
     expect(today[0].textContent).toContain("Plastica");
     expect(today[0].querySelector(".badge").textContent).toBe("Oggi");
-    expect(qa(card, ".tile.hl")).toEqual(today);
+    expect(qa(card, ".tile.next")).toHaveLength(0); // "next" solo se oggi non c'è nulla
   });
 
   it("evidenzia più rifiuti nello stesso giorno", () => {
@@ -43,7 +43,7 @@ describe("rendering base", () => {
     });
     const card = mountCard(state);
     expect(qa(card, ".tile.today")).toHaveLength(0);
-    const hl = qa(card, ".tile.hl");
+    const hl = qa(card, ".tile.next");
     expect(hl).toHaveLength(1);
     expect(hl[0].textContent).toContain("Carta");
   });
