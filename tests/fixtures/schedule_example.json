@@ -1,0 +1,157 @@
+{
+  "state": "1",
+  "attributes": {
+    "schema_version": 1,
+    "today": "2026-11-07",
+    "weekday": 5,
+    "horizon_days": 14,
+    "types": [
+      {
+        "id": "umido",
+        "name": "Umido",
+        "icon": "mdi:food-apple",
+        "next": {
+          "date": "2026-11-10",
+          "days_until": 3
+        }
+      },
+      {
+        "id": "plastica",
+        "name": "Plastica",
+        "icon": "mdi:recycle",
+        "next": {
+          "date": "2026-11-07",
+          "days_until": 0
+        }
+      },
+      {
+        "id": "carta",
+        "name": "Carta",
+        "icon": "mdi:package-variant",
+        "next": {
+          "date": "2026-11-09",
+          "days_until": 2
+        }
+      },
+      {
+        "id": "vetro",
+        "name": "Vetro",
+        "icon": "mdi:glass-fragile",
+        "next": {
+          "date": "2026-11-12",
+          "days_until": 5
+        }
+      }
+    ],
+    "today_items": [
+      "plastica"
+    ],
+    "days": [
+      {
+        "date": "2026-11-07",
+        "weekday": 5,
+        "is_today": true,
+        "items": [
+          "plastica"
+        ]
+      },
+      {
+        "date": "2026-11-08",
+        "weekday": 6,
+        "is_today": false,
+        "items": []
+      },
+      {
+        "date": "2026-11-09",
+        "weekday": 0,
+        "is_today": false,
+        "items": [
+          "carta"
+        ]
+      },
+      {
+        "date": "2026-11-10",
+        "weekday": 1,
+        "is_today": false,
+        "items": [
+          "umido"
+        ]
+      },
+      {
+        "date": "2026-11-11",
+        "weekday": 2,
+        "is_today": false,
+        "items": []
+      },
+      {
+        "date": "2026-11-12",
+        "weekday": 3,
+        "is_today": false,
+        "items": [
+          "vetro"
+        ]
+      },
+      {
+        "date": "2026-11-13",
+        "weekday": 4,
+        "is_today": false,
+        "items": [
+          "umido"
+        ]
+      },
+      {
+        "date": "2026-11-14",
+        "weekday": 5,
+        "is_today": false,
+        "items": [
+          "plastica"
+        ]
+      },
+      {
+        "date": "2026-11-15",
+        "weekday": 6,
+        "is_today": false,
+        "items": []
+      },
+      {
+        "date": "2026-11-16",
+        "weekday": 0,
+        "is_today": false,
+        "items": []
+      },
+      {
+        "date": "2026-11-17",
+        "weekday": 1,
+        "is_today": false,
+        "items": [
+          "umido"
+        ]
+      },
+      {
+        "date": "2026-11-18",
+        "weekday": 2,
+        "is_today": false,
+        "items": []
+      },
+      {
+        "date": "2026-11-19",
+        "weekday": 3,
+        "is_today": false,
+        "items": []
+      },
+      {
+        "date": "2026-11-20",
+        "weekday": 4,
+        "is_today": false,
+        "items": [
+          "umido"
+        ]
+      }
+    ],
+    "next_item": {
+      "id": "plastica",
+      "date": "2026-11-07",
+      "days_until": 0
+    }
+  }
+}

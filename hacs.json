@@ -1,0 +1,7 @@
+{
+  "name": "HA Garbage View",
+  "render_readme": true,
+  "zip_release": true,
+  "filename": "garbage_view.zip",
+  "homeassistant": "2024.12.0"
+}

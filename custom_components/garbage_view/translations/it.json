@@ -1,0 +1,129 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Garbage View",
+        "description": "Crea l'integrazione. Aggiungi i tipi di rifiuto dalle sue opzioni."
+      }
+    },
+    "abort": {
+      "already_configured": "Già configurato."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tipi di rifiuto",
+        "description": "Aggiungi, modifica o rimuovi i tipi di rifiuto. Le modifiche vengono applicate con Salva e chiudi.",
+        "menu_options": {
+          "add_type": "Aggiungi tipo di rifiuto",
+          "edit_type": "Modifica tipo di rifiuto",
+          "remove_type": "Rimuovi tipo di rifiuto",
+          "finish": "Salva e chiudi"
+        }
+      },
+      "details": {
+        "title": "Tipo di rifiuto",
+        "description": "Nome, icona e frequenza di raccolta.",
+        "data": {
+          "name": "Nome",
+          "icon": "Icona",
+          "rule_type": "Ricorrenza"
+        },
+        "data_description": {
+          "icon": "Icona Material Design, es. mdi:food-apple"
+        }
+      },
+      "rule_weekly": {
+        "title": "Ogni settimana",
+        "data": {
+          "weekdays": "Giorni di raccolta"
+        }
+      },
+      "rule_every_n_weeks": {
+        "title": "Ogni N settimane",
+        "data": {
+          "weekdays": "Giorni di raccolta",
+          "interval": "Ogni quante settimane",
+          "anchor_date": "Data di riferimento"
+        },
+        "data_description": {
+          "anchor_date": "Una qualsiasi data di una settimana in cui c'è la raccolta"
+        }
+      },
+      "rule_monthly_nth_weekday": {
+        "title": "Giorno del mese (es. primo lunedì)",
+        "data": {
+          "nth": "Quale",
+          "weekday": "Giorno della settimana"
+        }
+      },
+      "rule_monthly_day": {
+        "title": "Giorno fisso del mese",
+        "data": {
+          "day": "Giorno del mese"
+        },
+        "data_description": {
+          "day": "Se il mese è più corto, viene usato l'ultimo giorno"
+        }
+      },
+      "edit_type": {
+        "title": "Modifica tipo di rifiuto",
+        "data": {
+          "type_id": "Tipo di rifiuto"
+        }
+      },
+      "remove_type": {
+        "title": "Rimuovi tipo di rifiuto",
+        "data": {
+          "type_id": "Tipo di rifiuto"
+        }
+      }
+    },
+    "error": {
+      "invalid_name": "Inserisci un nome da 1 a 40 caratteri, diverso dagli altri tipi.",
+      "duplicate_name": "Esiste già un tipo di rifiuto con questo nome.",
+      "invalid_icon": "Usa un'icona come mdi:trash-can-outline.",
+      "no_weekdays": "Seleziona almeno un giorno.",
+      "invalid_weekday": "Giorno della settimana non valido.",
+      "invalid_interval": "Inserisci un numero da 2 a 8.",
+      "invalid_anchor_date": "Inserisci una data valida.",
+      "invalid_nth": "Scelta non valida.",
+      "invalid_day": "Inserisci un giorno da 1 a 31.",
+      "invalid_rule": "Ricorrenza non valida."
+    },
+    "abort": {
+      "max_types": "Hai raggiunto il massimo di 20 tipi di rifiuto."
+    }
+  },
+  "selector": {
+    "weekday": {
+      "options": {
+        "0": "Lunedì",
+        "1": "Martedì",
+        "2": "Mercoledì",
+        "3": "Giovedì",
+        "4": "Venerdì",
+        "5": "Sabato",
+        "6": "Domenica"
+      }
+    },
+    "nth": {
+      "options": {
+        "1": "Primo",
+        "2": "Secondo",
+        "3": "Terzo",
+        "4": "Quarto",
+        "-1": "Ultimo"
+      }
+    },
+    "rule_type": {
+      "options": {
+        "weekly": "Ogni settimana",
+        "every_n_weeks": "Ogni N settimane",
+        "monthly_nth_weekday": "N-esimo giorno della settimana del mese",
+        "monthly_day": "Giorno del mese"
+      }
+    }
+  }
+}
