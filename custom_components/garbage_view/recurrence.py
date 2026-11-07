@@ -64,7 +64,7 @@ def next_occurrence(
     return None
 
 
-def week_view(types: list[dict[str, Any]], today: date) -> dict[str, Any]:
+def build_view(types: list[dict[str, Any]], today: date) -> dict[str, Any]:
     """Costruisce gli attributi del sensore (CONTRACT.md §2)."""
     week_start = _monday(today)
     days = []
