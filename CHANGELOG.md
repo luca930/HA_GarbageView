@@ -5,7 +5,7 @@ Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/). / Fo
 ## [0.2.1] - 2026-11-07
 
 ### Cambiato / Changed
-- **Il calendario si espande dalla card compatta**, sul posto: niente più vista separata. Sotto la striscia dei giorni c'è il pulsante «Mostra calendario» (chevron, `aria-expanded`, tastiera): la striscia si chiude e il calendario si apre con un'animazione di altezza; ricliccando si torna alla vista compatta. Tessere, titolo e barra «Prossimo» restano sempre visibili. Con `prefers-reduced-motion` il passaggio è istantaneo. Il calendario viene costruito solo alla prima apertura.
+- **Il calendario si espande dalla card compatta**, sul posto: niente più vista separata. Sotto la striscia dei giorni c'è solo un piccolo chevron discreto (`aria-label`, `aria-expanded`, tastiera); la card compatta resta com'era: la striscia si chiude e il calendario si apre con un'animazione di altezza; ricliccando si torna alla vista compatta. Tessere, titolo e barra «Prossimo» restano sempre visibili. Con `prefers-reduced-motion` il passaggio è istantaneo. Il calendario viene costruito solo alla prima apertura.
 - Nuova opzione `start_expanded` (calendario già aperto). La vecchia `view: calendar` continua a funzionare come `start_expanded: true`; l'editor visuale ora scrive `start_expanded`. `show_view_toggle: false` nasconde il pulsante.
 - Test vitest/Playwright e screenshot aggiornati.
 

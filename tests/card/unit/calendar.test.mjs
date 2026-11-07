@@ -21,7 +21,7 @@ describe("vista calendario", () => {
     expect(qa(card, ".tile")).toHaveLength(4);
     expect(q(card, ".cal")).toBeNull(); // il calendario non viene nemmeno costruito
     const btn = q(card, ".expander");
-    expect(btn.textContent).toBe("Mostra calendario");
+    expect(btn.getAttribute("aria-label")).toBe("Mostra calendario");
     expect(btn.getAttribute("aria-expanded")).toBe("false");
     expect(btn.getAttribute("aria-controls")).toBe("gv-calendar");
     expect(q(card, "#gv-calendar").hasAttribute("inert")).toBe(true);
@@ -135,7 +135,7 @@ describe("navigazione", () => {
     const btn = q(card, ".expander");
     click(btn);
     expect(btn.getAttribute("aria-expanded")).toBe("true");
-    expect(btn.textContent).toBe("Nascondi calendario");
+    expect(btn.getAttribute("aria-label")).toBe("Nascondi calendario");
     expect(q(card, ".cal")).not.toBeNull();
     await new Promise((r) => requestAnimationFrame(r));
     expect(q(card, "#gv-calendar").classList.contains("open")).toBe(true);
@@ -203,7 +203,7 @@ describe("dettaglio e accessibilità", () => {
   it("inglese: testi e giorni tradotti", () => {
     const card = cal();
     card.hass = { ...card._hass, language: "en", locale: { language: "en" }, states: { "sensor.garbage_view_schedule": makeState() } };
-    expect(q(card, ".expander").textContent).toBe("Hide calendar");
+    expect(q(card, ".expander").getAttribute("aria-label")).toBe("Hide calendar");
     expect(q(card, ".cal-head span").textContent).toBe("Mon");
   });
 

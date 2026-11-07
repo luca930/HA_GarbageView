@@ -243,17 +243,18 @@ const STYLES = `
   .collapse.open { grid-template-rows: 1fr; opacity: 1; visibility: visible; transition-delay: 0s; }
   .collapse > .inner { overflow: hidden; min-height: 0; padding: 4px; margin: -4px; }
 
-  /* ---- Pulsante espandi / comprimi ---- */
+  /* ---- Pulsante espandi / comprimi: solo un piccolo chevron, discreto ---- */
   .expander {
     all: unset; box-sizing: border-box; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; min-height: 44px; margin-top: 8px; border-radius: 12px;
-    font-size: .85rem; font-weight: 600; color: var(--gv-accent);
-    transition: background var(--gv-anim-duration) ease, transform var(--gv-anim-duration) ease;
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 28px; margin: 2px auto 0; border-radius: 999px;
+    color: var(--gv-text-secondary); opacity: .75;
+    transition: background var(--gv-anim-duration) ease, opacity var(--gv-anim-duration) ease,
+                transform var(--gv-anim-duration) ease;
   }
-  .expander:hover { background: var(--gv-tile-bg); }
-  .expander:active { transform: scale(.97); }
-  .expander:focus-visible { outline: 3px solid var(--gv-accent); outline-offset: 1px; }
+  .expander:hover { background: var(--gv-tile-bg); opacity: 1; }
+  .expander:active { transform: scale(.92); }
+  .expander:focus-visible { outline: 3px solid var(--gv-accent); outline-offset: 1px; opacity: 1; }
   .expander .chev {
     width: 8px; height: 8px; margin-top: -3px;
     border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
@@ -669,10 +670,11 @@ class GarbageViewCard extends HTMLElement {
     b.dataset.key = "expander";
     b.setAttribute("aria-controls", "gv-calendar");
     b.setAttribute("aria-expanded", String(expanded));
-    const label = el("span", null, expanded ? t.collapse : t.expand);
+    b.setAttribute("aria-label", expanded ? t.collapse : t.expand);
+    b.title = expanded ? t.collapse : t.expand;
     const chev = el("span", "chev");
     chev.setAttribute("aria-hidden", "true");
-    b.append(label, chev);
+    b.append(chev);
     b.addEventListener("click", () => {
       this._expanded = b.getAttribute("aria-expanded") !== "true";
       this._selected = null;
@@ -680,7 +682,9 @@ class GarbageViewCard extends HTMLElement {
       for (const d of this._root.querySelectorAll(".day, .cal-day")) d.setAttribute("aria-pressed", "false");
       for (const d of this._root.querySelectorAll(".detail")) d.replaceChildren();
       b.setAttribute("aria-expanded", String(this._expanded));
-      label.textContent = this._expanded ? t.collapse : t.expand;
+      const text = this._expanded ? t.collapse : t.expand;
+      b.setAttribute("aria-label", text);
+      b.title = text;
       if (this._expanded && !this._calendar.firstChild.firstChild) this._fillCalendar();
       // Un frame dopo l'inserimento, così il browser parte dall'altezza 0 e anima.
       requestAnimationFrame(() => {
