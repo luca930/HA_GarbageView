@@ -14,7 +14,7 @@ Integrazione per Home Assistant, installabile da HACS, che mostra **cosa buttare
 - Tessere per ogni tipo di rifiuto, con badge «Oggi / Domani / N giorni» e data.
 - Striscia di 7 o 14 giorni e barra riepilogo «Prossimo».
 - Ricorrenze: settimanale, ogni N settimane, n-esimo giorno del mese (anche «ultimo»), giorno del mese.
-- Tipi gestiti dall'interfaccia (nome, icona, colore, regola), senza YAML.
+- Tipi gestiti dall'interfaccia (nome, icona, regola), senza YAML.
 - Sensore `sensor.garbage_view_schedule` ed entità `calendar.garbage_view` per le automazioni.
 - Due stili (`apple`, `homekit`), tema scuro automatico, animazioni leggere che rispettano `prefers-reduced-motion`.
 
@@ -26,7 +26,7 @@ Integrazione per Home Assistant, installabile da HACS, che mostra **cosa buttare
 La card viene registrata automaticamente: non serve aggiungere risorse a mano.
 
 ### Configurazione
-Dalla scheda dell'integrazione → **Configura** puoi aggiungere, modificare e rimuovere i tipi di rifiuto (nome, icona `mdi:`, colore `#RRGGBB`, ricorrenza).
+Dalla scheda dell'integrazione → **Configura** puoi aggiungere, modificare e rimuovere i tipi di rifiuto (nome, icona `mdi:`, ricorrenza).
 
 Poi aggiungi la card (anche dall'editor visuale):
 
@@ -88,7 +88,7 @@ A HACS-installable Home Assistant integration that shows **what to put out today
 - One tile per waste type with a "Today / Tomorrow / N days" badge and date.
 - 7- or 14-day strip and a "Next" summary bar.
 - Recurrences: weekly, every N weeks, nth weekday of the month (including "last"), day of month.
-- Waste types managed from the UI (name, icon, color, rule), no YAML needed.
+- Waste types managed from the UI (name, icon, rule), no YAML needed.
 - `sensor.garbage_view_schedule` and `calendar.garbage_view` entities for automations.
 - Two styles (`apple`, `homekit`), automatic dark mode, light animations honoring `prefers-reduced-motion`.
 
@@ -100,7 +100,7 @@ A HACS-installable Home Assistant integration that shows **what to put out today
 The card is registered automatically: no manual resource needed.
 
 ### Configuration
-From the integration page → **Configure** you can add, edit and remove waste types (name, `mdi:` icon, `#RRGGBB` color, recurrence).
+From the integration page → **Configure** you can add, edit and remove waste types (name, `mdi:` icon, recurrence).
 
 Then add the card (the visual editor works too):
 

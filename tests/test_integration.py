@@ -13,11 +13,11 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 from custom_components.garbage_view.const import DOMAIN
 
 TYPES = [
-    {"id": "umido", "name": "Umido", "icon": "mdi:food-apple", "color": "#8E5A2B",
+    {"id": "umido", "name": "Umido", "icon": "mdi:food-apple",
      "rule": {"type": "weekly", "weekdays": [1, 4]}},
-    {"id": "plastica", "name": "Plastica", "icon": "mdi:recycle", "color": "#FF9F0A",
+    {"id": "plastica", "name": "Plastica", "icon": "mdi:recycle",
      "rule": {"type": "weekly", "weekdays": [5]}},
-    {"id": "carta", "name": "Carta", "icon": "mdi:package-variant", "color": "#0A84FF",
+    {"id": "carta", "name": "Carta", "icon": "mdi:package-variant",
      "rule": {"type": "every_n_weeks", "weekdays": [0], "interval": 2,
               "anchor_date": "2026-11-09"}},
 ]

@@ -82,7 +82,7 @@ def build_view(
     # Elementi incompleti (dati corrotti) vengono saltati invece di sollevare.
     types = [
         t for t in types
-        if isinstance(t, dict) and all(k in t for k in ("id", "name", "icon", "color", "rule"))
+        if isinstance(t, dict) and all(k in t for k in ("id", "name", "icon", "rule"))
     ]
     days = []
     for i in range(horizon_days):
@@ -106,7 +106,7 @@ def build_view(
             # A parità di days_until vince il primo in `types` (confronto stretto).
             if next_item is None or nxt["days_until"] < next_item["days_until"]:
                 next_item = {"id": t["id"], **nxt}
-        out_types.append({**{k: t[k] for k in ("id", "name", "icon", "color")}, "next": nxt})
+        out_types.append({**{k: t[k] for k in ("id", "name", "icon")}, "next": nxt})
 
     return {
         "schema_version": SCHEMA_VERSION,

@@ -10,7 +10,6 @@ Tutti i task rispettano questo contratto. Modifiche solo con aumento di `schema_
       "id": "umido",                 // slug [a-z0-9_]{1,32}, univoco
       "name": "Umido",               // 1..40 caratteri
       "icon": "mdi:food-apple",      // ^mdi:[a-z0-9-]+$
-      "color": "#8E5A2B",            // ^#[0-9A-Fa-f]{6}$
       "rule": { "type": "weekly", "weekdays": [1, 4] }
     }
   ]
@@ -21,8 +20,8 @@ Tutti i task rispettano questo contratto. Modifiche solo con aumento di `schema_
 Regole (`rule`):
 | type | campi |
 |---|---|
-| `weekly` | `weekdays: int[1..7]` |
-| `every_n_weeks` | `weekdays: int[1..7]`, `interval: 2..8`, `anchor_date: "YYYY-MM-DD"` (qualsiasi data della settimana "attiva") |
+| `weekly` | `weekdays`: lista di 1..7 giorni, valori 0..6 |
+| `every_n_weeks` | `weekdays`: lista di 1..7 giorni, valori 0..6, `interval: 2..8`, `anchor_date: "YYYY-MM-DD"` (qualsiasi data della settimana "attiva") |
 | `monthly_nth_weekday` | `weekday: 0..6`, `nth: 1..4 \| -1` (-1 = ultimo) |
 | `monthly_day` | `day: 1..31` (se il mese è più corto, ultimo giorno del mese) |
 
@@ -36,7 +35,7 @@ Regole (`rule`):
   "weekday": 5,
   "horizon_days": 14,
   "types": [
-    { "id": "umido", "name": "Umido", "icon": "mdi:food-apple", "color": "#8E5A2B",
+    { "id": "umido", "name": "Umido", "icon": "mdi:food-apple",
       "next": { "date": "2026-11-10", "days_until": 3 } }
   ],
   "today_items": ["plastica"],
@@ -55,7 +54,7 @@ Regole (`rule`):
 ## 3. Card `custom:garbage-view-card`
 Layout (riferimento: esempio di Luca, `docs/reference/example.jpeg`): 
 1. riga di tessere, una per tipo: icona, nome, badge con "Oggi" / "Domani" / "N giorni" e data breve (es. "gio 12/11"); la tessera col prossimo ritiro (o quelle di oggi) è evidenziata con bordo/alone, più tessere possono essere evidenziate insieme;
-2. sotto, striscia di giorni (`days`): sigla del giorno sopra, numero sotto; oggi con contorno, i giorni con ritiro riempiti col colore del tipo (più tipi: segmenti/puntini);
+2. sotto, striscia di giorni (`days`): sigla del giorno sopra, numero sotto; oggi con contorno, i giorni con ritiro riempiti con l'unico colore d'accento (`--gv-accent`); i tipi non hanno un colore proprio;
 3. in fondo una barra riepilogo "Prossimo: **Plastica** · sab 7/11 · oggi" da `next_item`.
 ```yaml
 type: custom:garbage-view-card

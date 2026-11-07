@@ -20,14 +20,14 @@ FIXTURE = json.loads((ROOT / "tests/fixtures/schedule_example.json").read_text()
 
 # Regole che riproducono la fixture (14 giorni da 2026-11-07).
 TYPES = [
-    {"id": "umido", "name": "Umido", "icon": "mdi:food-apple", "color": "#8E5A2B",
+    {"id": "umido", "name": "Umido", "icon": "mdi:food-apple",
      "rule": {"type": "weekly", "weekdays": [1, 4]}},
-    {"id": "plastica", "name": "Plastica", "icon": "mdi:recycle", "color": "#FF9F0A",
+    {"id": "plastica", "name": "Plastica", "icon": "mdi:recycle",
      "rule": {"type": "weekly", "weekdays": [5]}},
-    {"id": "carta", "name": "Carta", "icon": "mdi:package-variant", "color": "#0A84FF",
+    {"id": "carta", "name": "Carta", "icon": "mdi:package-variant",
      "rule": {"type": "every_n_weeks", "weekdays": [0], "interval": 2,
               "anchor_date": "2026-11-09"}},
-    {"id": "vetro", "name": "Vetro", "icon": "mdi:glass-fragile", "color": "#34C759",
+    {"id": "vetro", "name": "Vetro", "icon": "mdi:glass-fragile",
      "rule": {"type": "monthly_nth_weekday", "weekday": 3, "nth": 2}},
 ]
 
@@ -142,9 +142,9 @@ def test_build_view_custom_horizon():
 
 def test_next_item_tie_goes_to_first_type():
     types = [
-        {"id": "b", "name": "B", "icon": "mdi:a", "color": "#000000",
+        {"id": "b", "name": "B", "icon": "mdi:a",
          "rule": {"type": "weekly", "weekdays": [2]}},
-        {"id": "a", "name": "A", "icon": "mdi:a", "color": "#000000",
+        {"id": "a", "name": "A", "icon": "mdi:a",
          "rule": {"type": "weekly", "weekdays": [2]}},
     ]
     view = rec.build_view(types, date(2026, 11, 3))  # martedì
@@ -153,9 +153,9 @@ def test_next_item_tie_goes_to_first_type():
 
 def test_build_view_items_follow_types_order_and_multiple_per_day():
     types = [
-        {"id": "b", "name": "B", "icon": "mdi:a", "color": "#000000",
+        {"id": "b", "name": "B", "icon": "mdi:a",
          "rule": {"type": "weekly", "weekdays": [2]}},
-        {"id": "a", "name": "A", "icon": "mdi:a", "color": "#000000",
+        {"id": "a", "name": "A", "icon": "mdi:a",
          "rule": {"type": "weekly", "weekdays": [2]}},
     ]
     view = rec.build_view(types, date(2026, 11, 4))
@@ -163,7 +163,7 @@ def test_build_view_items_follow_types_order_and_multiple_per_day():
 
 
 def test_next_null_when_never_occurs():
-    t = [{"id": "x", "name": "X", "icon": "mdi:a", "color": "#000000",
+    t = [{"id": "x", "name": "X", "icon": "mdi:a",
           "rule": {"type": "weekly", "weekdays": []}}]
     view = rec.build_view(t, date(2026, 11, 7))
     assert view["types"][0]["next"] is None and view["next_item"] is None
