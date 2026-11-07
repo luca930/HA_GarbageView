@@ -112,8 +112,10 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_edit_type(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:
-            self._editing = user_input["type_id"]
-            current = next(t for t in self._types if t["id"] == self._editing)
+            current = next((t for t in self._types if t["id"] == user_input["type_id"]), None)
+            if current is None:
+                return await self.async_step_init()
+            self._editing = current["id"]
             self._draft = {"name": current["name"], "icon": current["icon"], "rule_type": current["rule"]["type"]}
             return await self.async_step_details()
         return self.async_show_form(step_id="edit_type", data_schema=self._pick_schema())
@@ -167,7 +169,10 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
                 errors[err.field] = err.code
             else:
                 return await self.async_step_init()
-        return self.async_show_form(step_id=step, data_schema=vol.Schema(fields), errors=errors)
+        schema = vol.Schema(fields)
+        if user_input is not None:  # mantiene le scelte dell'utente dopo un errore
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+        return self.async_show_form(step_id=step, data_schema=schema, errors=errors)
 
     async def async_step_rule_weekly(self, user_input: dict[str, Any] | None = None):
         cur = self._current_rule(RULE_WEEKLY)

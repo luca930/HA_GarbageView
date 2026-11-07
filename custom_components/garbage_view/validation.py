@@ -6,6 +6,7 @@ chiave di traduzione in ``config.error`` / ``options.error``.
 """
 from __future__ import annotations
 
+import math
 import re
 import unicodedata
 from datetime import date
@@ -42,7 +43,7 @@ def _int(value: Any, field: str, code: str) -> int:
         as_float = float(value)
     except (TypeError, ValueError):
         raise ValidationError(code, field) from None
-    if as_float != int(as_float):
+    if not math.isfinite(as_float) or as_float != int(as_float):
         raise ValidationError(code, field)
     return int(as_float)
 
@@ -127,7 +128,11 @@ def unique_id(name: str, existing: set[str]) -> str:
 def build_type(
     *, type_id: str | None, name: Any, icon: Any, rule: Any, existing_ids: set[str]
 ) -> dict[str, Any]:
-    """Crea il dict salvato in ``options["types"]``. ``existing_ids`` esclude il tipo in modifica."""
+    """Crea il dict salvato in ``options["types"]``.
+
+    ``existing_ids`` sono gli id già in uso, usati solo per generare un id nuovo
+    quando ``type_id`` è ``None``; se ``type_id`` è dato (modifica) viene mantenuto.
+    """
     clean_name = validate_name(name)
     item = {
         "id": type_id or unique_id(clean_name, existing_ids),
@@ -136,5 +141,5 @@ def build_type(
         "rule": validate_rule(rule),
     }
     if not ID_RE.fullmatch(item["id"]):
-        raise ValidationError("invalid_rule", "name")
+        raise ValueError(f"invalid type id: {item['id']!r}")  # errore di programmazione, non di input
     return item

@@ -96,6 +96,19 @@ async def test_validation_errors(hass, entry):
     assert r["type"] == FlowResultType.MENU
 
 
+async def test_rule_error_keeps_input(hass, entry):
+    r = await hass.config_entries.options.async_init(entry.entry_id)
+    fid = r["flow_id"]
+    await _menu(hass, fid, "add_type")
+    await hass.config_entries.options.async_configure(
+        fid, {"name": "Carta", "icon": "mdi:a", "rule_type": "every_n_weeks"})
+    r = await hass.config_entries.options.async_configure(
+        fid, {"weekdays": [], "interval": 2, "anchor_date": "2026-11-04"})
+    assert r["errors"] == {"weekdays": "no_weekdays"}
+    suggested = {str(k): k.description["suggested_value"] for k in r["data_schema"].schema if k.description}
+    assert suggested["anchor_date"] == "2026-11-04"
+
+
 async def test_duplicate_name(hass, entry):
     r = await hass.config_entries.options.async_init(entry.entry_id)
     fid = r["flow_id"]

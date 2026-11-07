@@ -30,6 +30,8 @@ def test_weekly():
     assert err(validate_rule, {"type": "weekly", "weekdays": [7]}) == "invalid_weekday"
     assert err(validate_rule, {"type": "weekly", "weekdays": [True]}) == "invalid_weekday"
     assert err(validate_rule, {"type": "weekly", "weekdays": [1.5]}) == "invalid_weekday"
+    for bad in (float("nan"), float("inf"), "nan", "inf"):
+        assert err(validate_rule, {"type": "monthly_day", "day": bad}) == "invalid_day"
 
 
 def test_every_n_weeks():
