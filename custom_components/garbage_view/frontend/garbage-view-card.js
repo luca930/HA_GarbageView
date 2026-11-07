@@ -497,7 +497,7 @@ class GarbageViewCard extends HTMLElement {
     this._dir = 0; // direzione dello scorrimento (-1 indietro, 1 avanti)
     this._lastStateObj = undefined;
     // Le colonne delle tessere dipendono dalla larghezza: si ricalcolano solo quando cambia.
-    this._tileW = -1;
+    this._tileKey = null; // chiave dell'ultimo layout calcolato (larghezza, minimo, gap, numero di tessere)
     this._ro = typeof ResizeObserver === "function" ? new ResizeObserver(() => this._layoutTiles()) : null;
   }
 
@@ -1296,7 +1296,8 @@ class GarbageViewCardEditor extends HTMLElement {
     set("title", this._title.value, this._title.value.trim() !== "");
     set("style", this._styleSel.value, true);
     set("days", 14, this._days.value === "14"); // 7 è il default
-    set("tile_min_width", clampTileMin(this._tileMin.value), clampTileMin(this._tileMin.value) !== null);
+    const tileMin = clampTileMin(this._tileMin.value);
+    set("tile_min_width", tileMin, tileMin !== null);
     delete config.view; // opzione 0.2.0, sostituita da start_expanded
     set("start_expanded", true, this._startExpanded.checked); // false è il default
     set("calendar_mode", this._mode.value, this._mode.value !== "week"); // week è il default
