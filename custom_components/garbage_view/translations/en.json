@@ -1,1 +1,129 @@
-{ "config": { "step": { "user": { "title": "Garbage View", "description": "Create the integration. Add waste types from its options." } }, "abort": { "already_configured": "Already configured." } } }
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Garbage View",
+        "description": "Create the integration. Add waste types from its options."
+      }
+    },
+    "abort": {
+      "already_configured": "Already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Waste types",
+        "description": "Add, edit or remove waste types. Changes are applied when you choose Save and close.",
+        "menu_options": {
+          "add_type": "Add waste type",
+          "edit_type": "Edit waste type",
+          "remove_type": "Remove waste type",
+          "finish": "Save and close"
+        }
+      },
+      "details": {
+        "title": "Waste type",
+        "description": "Name, icon and how often it is collected.",
+        "data": {
+          "name": "Name",
+          "icon": "Icon",
+          "rule_type": "Schedule"
+        },
+        "data_description": {
+          "icon": "Material Design icon, e.g. mdi:food-apple"
+        }
+      },
+      "rule_weekly": {
+        "title": "Every week",
+        "data": {
+          "weekdays": "Collection days"
+        }
+      },
+      "rule_every_n_weeks": {
+        "title": "Every N weeks",
+        "data": {
+          "weekdays": "Collection days",
+          "interval": "Every how many weeks",
+          "anchor_date": "Reference date"
+        },
+        "data_description": {
+          "anchor_date": "Any date in a week when collection happens"
+        }
+      },
+      "rule_monthly_nth_weekday": {
+        "title": "Day of the month (e.g. first Monday)",
+        "data": {
+          "nth": "Which one",
+          "weekday": "Weekday"
+        }
+      },
+      "rule_monthly_day": {
+        "title": "Fixed day of the month",
+        "data": {
+          "day": "Day of the month"
+        },
+        "data_description": {
+          "day": "If the month is shorter, the last day is used"
+        }
+      },
+      "edit_type": {
+        "title": "Edit waste type",
+        "data": {
+          "type_id": "Waste type"
+        }
+      },
+      "remove_type": {
+        "title": "Remove waste type",
+        "data": {
+          "type_id": "Waste type"
+        }
+      }
+    },
+    "error": {
+      "invalid_name": "Enter a name of 1 to 40 characters, unique among your waste types.",
+      "duplicate_name": "A waste type with this name already exists.",
+      "invalid_icon": "Use an icon like mdi:trash-can-outline.",
+      "no_weekdays": "Select at least one day.",
+      "invalid_weekday": "Invalid weekday.",
+      "invalid_interval": "Enter a number between 2 and 8.",
+      "invalid_anchor_date": "Enter a valid date.",
+      "invalid_nth": "Invalid choice.",
+      "invalid_day": "Enter a day between 1 and 31.",
+      "invalid_rule": "Invalid schedule."
+    },
+    "abort": {
+      "max_types": "You reached the maximum of 20 waste types."
+    }
+  },
+  "selector": {
+    "weekday": {
+      "options": {
+        "0": "Monday",
+        "1": "Tuesday",
+        "2": "Wednesday",
+        "3": "Thursday",
+        "4": "Friday",
+        "5": "Saturday",
+        "6": "Sunday"
+      }
+    },
+    "nth": {
+      "options": {
+        "1": "First",
+        "2": "Second",
+        "3": "Third",
+        "4": "Fourth",
+        "-1": "Last"
+      }
+    },
+    "rule_type": {
+      "options": {
+        "weekly": "Every week",
+        "every_n_weeks": "Every N weeks",
+        "monthly_nth_weekday": "Nth weekday of the month",
+        "monthly_day": "Day of the month"
+      }
+    }
+  }
+}
