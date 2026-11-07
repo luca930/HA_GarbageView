@@ -48,7 +48,7 @@ async def test_add_edit_remove(hass, entry):
     assert r["type"] == FlowResultType.MENU and "edit_type" in r["menu_options"]
     r = await _add(hass, fid, "Carta", "mdi:newspaper", "every_n_weeks",
                    {"weekdays": ["2"], "interval": 2, "anchor_date": "2026-11-04"})
-    r = await _add(hass, fid, "Vetro", "mdi:glass-fragile", "monthly_nth_weekday", {"nth": "-1", "weekday": "4"})
+    r = await _add(hass, fid, "Vetro", "mdi:glass-fragile", "monthly_nth_weekday", {"nth": "last", "weekday": "4"})
     r = await _add(hass, fid, "Ingombranti", "mdi:sofa", "monthly_day", {"day": 15})
 
     # modifica Umido
@@ -155,3 +155,12 @@ async def test_edit_keeps_own_name(hass):
     await hass.config_entries.options.async_configure(fid, {"day": 31})
     r = await _menu(hass, fid, "finish")
     assert r["data"]["types"] == [{**t, "icon": "mdi:b", "rule": {"type": "monthly_day", "day": 31}}]
+
+
+def test_translation_option_keys_valid_for_hassfest():
+    """hassfest: le chiavi di `selector.*.options` devono essere [a-z0-9-_]+, senza trattini/underscore ai bordi."""
+    import json, pathlib, re
+    ok = re.compile(r"^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$")
+    for f in pathlib.Path("custom_components/garbage_view/translations").glob("*.json"):
+        for sel in json.loads(f.read_text())["selector"].values():
+            assert all(ok.match(k) for k in sel["options"]), f

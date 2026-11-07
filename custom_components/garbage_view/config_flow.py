@@ -24,7 +24,7 @@ from .const import (
     RULE_TYPES,
     RULE_WEEKLY,
 )
-from .validation import NTH_VALUES, ValidationError, build_type, validate_icon, validate_name
+from .validation import ValidationError, build_type, validate_icon, validate_name
 
 _WEEKDAYS = selector.SelectSelector(
     selector.SelectSelectorConfig(
@@ -43,7 +43,7 @@ _WEEKDAY = selector.SelectSelector(
 )
 _NTH = selector.SelectSelector(
     selector.SelectSelectorConfig(
-        options=[str(n) for n in NTH_VALUES],
+        options=["1", "2", "3", "4", "last"],  # "-1" non è una chiave di traduzione valida (hassfest)
         mode=selector.SelectSelectorMode.DROPDOWN,
         translation_key="nth",
     )
@@ -208,11 +208,11 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
             "rule_monthly_nth_weekday",
             RULE_MONTHLY_NTH_WEEKDAY,
             {
-                vol.Required("nth", default=str(cur.get("nth", 1))): _NTH,
+                vol.Required("nth", default="last" if cur.get("nth") == -1 else str(cur.get("nth", 1))): _NTH,
                 vol.Required("weekday", default=str(cur.get("weekday", 0))): _WEEKDAY,
             },
             user_input,
-            lambda i: {"nth": i["nth"], "weekday": i["weekday"]},
+            lambda i: {"nth": -1 if i["nth"] == "last" else i["nth"], "weekday": i["weekday"]},
         )
 
     async def async_step_rule_monthly_day(self, user_input: dict[str, Any] | None = None):
