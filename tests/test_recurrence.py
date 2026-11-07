@@ -18,18 +18,17 @@ _spec.loader.exec_module(rec)
 
 FIXTURE = json.loads((ROOT / "tests/fixtures/schedule_example.json").read_text())
 
-# Regole che riproducono la fixture (settimana 2026-11-02 .. 2026-11-08).
+# Regole che riproducono la fixture (14 giorni da 2026-11-07).
 TYPES = [
     {"id": "umido", "name": "Umido", "icon": "mdi:food-apple", "color": "#8E5A2B",
-     "rule": {"type": "weekly", "weekdays": [1, 3]}},
-    {"id": "plastica", "name": "Plastica", "icon": "mdi:bottle-soda", "color": "#FFCC00",
+     "rule": {"type": "weekly", "weekdays": [1, 4]}},
+    {"id": "plastica", "name": "Plastica", "icon": "mdi:recycle", "color": "#FF9F0A",
      "rule": {"type": "weekly", "weekdays": [5]}},
-    {"id": "carta", "name": "Carta", "icon": "mdi:newspaper", "color": "#0A84FF",
-     # La fixture indica carta anche lunedì 2026-11-09: con interval=2 non sarebbe
-     # coerente, quindi qui è settimanale (every_n_weeks è coperta dai test dedicati).
-     "rule": {"type": "weekly", "weekdays": [0]}},
+    {"id": "carta", "name": "Carta", "icon": "mdi:package-variant", "color": "#0A84FF",
+     "rule": {"type": "every_n_weeks", "weekdays": [0], "interval": 2,
+              "anchor_date": "2026-11-09"}},
     {"id": "vetro", "name": "Vetro", "icon": "mdi:glass-fragile", "color": "#34C759",
-     "rule": {"type": "monthly_nth_weekday", "weekday": 5, "nth": 3}},
+     "rule": {"type": "monthly_nth_weekday", "weekday": 3, "nth": 2}},
 ]
 
 
@@ -124,31 +123,52 @@ def test_next_occurrence_includes_today_and_none():
     assert rec.next_occurrence(never, date(2026, 11, 7)) is None
 
 
-def test_week_view_matches_fixture():
-    view = rec.week_view(TYPES, date(2026, 11, 7))
+def test_build_view_matches_fixture():
+    view = rec.build_view(TYPES, date(2026, 11, 7))
     assert view == FIXTURE["attributes"]
 
 
-@pytest.mark.parametrize("today", [date(2026, 11, 2), date(2026, 11, 8)])
-def test_week_view_always_seven_days_monday_first(today):
-    view = rec.week_view(TYPES, today)
-    assert len(view["days"]) == 7
-    assert [d["weekday"] for d in view["days"]] == list(range(7))
-    assert view["week_start"] == "2026-11-02"
+def test_build_view_rolling_window_starts_today():
+    view = rec.build_view(TYPES, date(2026, 11, 4))
+    assert len(view["days"]) == view["horizon_days"] == 14
+    assert view["days"][0]["is_today"] and view["days"][0]["date"] == "2026-11-04"
     assert sum(d["is_today"] for d in view["days"]) == 1
+    assert view["days"][-1]["date"] == "2026-11-17"
 
 
-def test_week_view_items_follow_types_order_and_multiple_per_day():
+def test_build_view_custom_horizon():
+    assert len(rec.build_view(TYPES, date(2026, 11, 7), horizon_days=7)["days"]) == 7
+
+
+def test_next_item_tie_goes_to_first_type():
     types = [
         {"id": "b", "name": "B", "icon": "mdi:a", "color": "#000000",
          "rule": {"type": "weekly", "weekdays": [2]}},
         {"id": "a", "name": "A", "icon": "mdi:a", "color": "#000000",
          "rule": {"type": "weekly", "weekdays": [2]}},
     ]
-    view = rec.week_view(types, date(2026, 11, 4))
+    view = rec.build_view(types, date(2026, 11, 3))  # martedì
+    assert view["next_item"] == {"id": "b", "date": "2026-11-04", "days_until": 1}
+
+
+def test_build_view_items_follow_types_order_and_multiple_per_day():
+    types = [
+        {"id": "b", "name": "B", "icon": "mdi:a", "color": "#000000",
+         "rule": {"type": "weekly", "weekdays": [2]}},
+        {"id": "a", "name": "A", "icon": "mdi:a", "color": "#000000",
+         "rule": {"type": "weekly", "weekdays": [2]}},
+    ]
+    view = rec.build_view(types, date(2026, 11, 4))
     assert view["today_items"] == ["b", "a"]
 
 
-def test_week_view_empty_types():
-    view = rec.week_view([], date(2026, 11, 7))
-    assert view["types"] == [] and view["today_items"] == [] and view["next"] == {}
+def test_next_null_when_never_occurs():
+    t = [{"id": "x", "name": "X", "icon": "mdi:a", "color": "#000000",
+          "rule": {"type": "weekly", "weekdays": []}}]
+    view = rec.build_view(t, date(2026, 11, 7))
+    assert view["types"][0]["next"] is None and view["next_item"] is None
+
+
+def test_build_view_empty_types():
+    view = rec.build_view([], date(2026, 11, 7))
+    assert view["types"] == [] and view["today_items"] == [] and view["next_item"] is None
