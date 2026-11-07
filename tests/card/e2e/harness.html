@@ -11,16 +11,19 @@
   <style>
     body { margin: 0; padding: 20px; font-family: system-ui, sans-serif; background: #e9e9ee; }
     body.dark { background: #000; }
+    /* Come i temi di HA: la card prende lo sfondo da --card-background-color */
+    body { --card-background-color: #ffffff; }
+    body.dark { --card-background-color: #1c1c1e; }
   </style>
 </head>
 <body>
   <div id="root"></div>
   <script>
     // <ha-icon> esiste solo dentro Home Assistant: qui ne mettiamo una versione finta
-    // (una lettera in un cerchio) così gli screenshot mostrano un'icona.
+    // (un cerchio, grande come --mdc-icon-size) così gli screenshot mostrano un'icona.
     customElements.define("ha-icon", class extends HTMLElement {
       connectedCallback() {
-        this.style.cssText = "display:inline-flex;width:28px;height:28px;border:3px solid currentColor;border-radius:50%;box-sizing:border-box";
+        this.style.cssText = "display:inline-flex;width:var(--mdc-icon-size,28px);height:var(--mdc-icon-size,28px);border:3px solid currentColor;border-radius:50%;box-sizing:border-box";
       }
     });
   </script>
