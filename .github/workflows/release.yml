@@ -1,0 +1,29 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verifica che il tag coincida con la versione del manifest
+        run: |
+          manifest=$(python3 -c "import json;print(json.load(open('custom_components/garbage_view/manifest.json'))['version'])")
+          if [ "v${manifest}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Il tag ${GITHUB_REF_NAME} non coincide con manifest.json (v${manifest})" >&2
+            exit 1
+          fi
+      - name: Crea lo zip dell'integrazione
+        run: |
+          cd custom_components/garbage_view
+          zip -r ../../garbage_view.zip . -x '__pycache__/*' '*.pyc'
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: garbage_view.zip
+          generate_release_notes: true
