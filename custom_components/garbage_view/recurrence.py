@@ -25,9 +25,16 @@ def _to_date(value: date | str) -> date:
 def occurs_on(rule: dict[str, Any], day: date) -> bool:
     """Ritorna True se la regola (CONTRACT.md §1) cade in `day`.
 
-    Una regola sconosciuta non cade mai (falso), così un dato
+    Una regola sconosciuta o malformata non cade mai (falso), così un dato
     corrotto non rompe l'intero aggiornamento.
     """
+    try:
+        return _occurs_on(rule, day)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+
+
+def _occurs_on(rule: dict[str, Any], day: date) -> bool:
     rtype = rule.get("type")
 
     if rtype == "weekly":
@@ -72,6 +79,11 @@ def build_view(
 
     `days` è una finestra mobile di `horizon_days` giorni che parte da oggi.
     """
+    # Elementi incompleti (dati corrotti) vengono saltati invece di sollevare.
+    types = [
+        t for t in types
+        if isinstance(t, dict) and all(k in t for k in ("id", "name", "icon", "color", "rule"))
+    ]
     days = []
     for i in range(horizon_days):
         day = today + timedelta(days=i)

@@ -172,3 +172,19 @@ def test_next_null_when_never_occurs():
 def test_build_view_empty_types():
     view = rec.build_view([], date(2026, 11, 7))
     assert view["types"] == [] and view["today_items"] == [] and view["next_item"] is None
+
+
+@pytest.mark.parametrize("rule", [
+    {}, {"type": "weekly"}, {"type": "weekly", "weekdays": 3},
+    {"type": "every_n_weeks", "weekdays": [0]},
+    {"type": "every_n_weeks", "weekdays": [0], "interval": 2, "anchor_date": "boh"},
+    {"type": "monthly_nth_weekday", "weekday": 0},
+    {"type": "monthly_day"},
+])
+def test_malformed_rules_degrade_to_false(rule):
+    assert rec.occurs_on(rule, date(2026, 11, 2)) is False
+
+
+def test_build_view_skips_incomplete_types():
+    view = rec.build_view([{"id": "x"}, TYPES[0]], date(2026, 11, 7))
+    assert [t["id"] for t in view["types"]] == ["umido"]
