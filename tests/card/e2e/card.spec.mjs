@@ -25,7 +25,7 @@ for (const style of ["apple", "homekit"]) {
 
       const card = page.locator("garbage-view-card");
       await expect(card.locator(".tile")).toHaveCount(4);
-      await expect(card.locator(".day")).toHaveCount(14);
+      await expect(card.locator(".day")).toHaveCount(7);
       await expect(card.locator(".tile.today")).toHaveCount(1);
       await page.waitForTimeout(1500); // fine delle animazioni d'ingresso
       await card.screenshot({ path: join(shots, `${style}-${theme}.png`), animations: "disabled" });
@@ -60,8 +60,8 @@ test("l'editor modifica la card in diretta", async ({ page }) => {
   const editor = page.locator("garbage-view-card-editor");
   const card = page.locator("garbage-view-card");
 
-  await editor.getByLabel("Giorni mostrati nella striscia").selectOption("7");
-  await expect(card.locator(".day")).toHaveCount(7);
+  await editor.getByLabel("Giorni mostrati nella striscia").selectOption("14");
+  await expect(card.locator(".day")).toHaveCount(14);
 
   await editor.getByLabel("Stile").selectOption("homekit");
   await expect(card).toHaveAttribute("data-style", "homekit");
@@ -73,7 +73,7 @@ test("l'editor modifica la card in diretta", async ({ page }) => {
   await expect(card.locator(".summary-bar")).toHaveCount(0);
 
   const config = await page.evaluate(() => window.lastConfig);
-  expect(config).toMatchObject({ style: "homekit", days: 7, show_summary: false, title: "Casa mia" });
+  expect(config).toMatchObject({ style: "homekit", days: 14, show_summary: false, title: "Casa mia" });
 
   await page.screenshot({ path: join(shots, "editor.png"), animations: "disabled", fullPage: true });
 });

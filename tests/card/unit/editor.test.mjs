@@ -40,7 +40,7 @@ describe("editor visuale", () => {
       entity: "sensor.garbage_view_schedule",
       title: "Raccolta",
       style: "homekit",
-      days: 7,
+      days: 14,
       show_summary: false,
       css: "--gv-radius: 10px",
     });
@@ -48,7 +48,7 @@ describe("editor visuale", () => {
     expect($("input[maxlength='80']").value).toBe("Raccolta");
     expect($("select").value).toBe("homekit");
     expect($("select:nth-of-type(1)").value).toBe("homekit");
-    expect(editor.shadowRoot.querySelectorAll("select")[1].value).toBe("7");
+    expect(editor.shadowRoot.querySelectorAll("select")[1].value).toBe("14");
     expect($("input[type=checkbox]").checked).toBe(false);
     expect($("textarea").value).toBe("--gv-radius: 10px");
   });
@@ -93,9 +93,9 @@ describe("editor visuale", () => {
   it("days e show_summary vengono salvati quando cambiano", () => {
     const { editor, events } = mountEditor();
     const selects = editor.shadowRoot.querySelectorAll("select");
-    choose(selects[1], "7");
-    expect(events.at(-1).days).toBe(7);
-    choose(selects[1], "14"); // torna al default: il campo sparisce
+    choose(selects[1], "14");
+    expect(events.at(-1).days).toBe(14);
+    choose(selects[1], "7"); // torna al default: il campo sparisce
     expect(events.at(-1)).not.toHaveProperty("days");
     const check = editor.shadowRoot.querySelector("input[type=checkbox]");
     check.checked = false;

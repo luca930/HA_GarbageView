@@ -469,7 +469,7 @@ class GarbageViewCard extends HTMLElement {
     const style = config.style === "homekit" ? "homekit" : "apple";
     this._config = {
       title: typeof config.title === "string" ? config.title.slice(0, 80) : "",
-      days: Number(config.days) === 7 ? 7 : 14,
+      days: Number(config.days) === 14 ? 14 : 7, // default 7 (dalla 0.2.1; prima 14)
       show_summary: config.show_summary !== false,
       // `view: calendar` (v0.2.0) equivale a start_expanded: true.
       start_expanded: config.start_expanded === true || (config.start_expanded === undefined && config.view === "calendar"),
@@ -518,7 +518,7 @@ class GarbageViewCard extends HTMLElement {
 
   static getStubConfig(hass) {
     const entity = hass && Object.keys(hass.states).find((e) => e.startsWith("sensor.garbage_view"));
-    return { entity: entity || "sensor.garbage_view_schedule", style: "apple", days: 14, show_summary: true };
+    return { entity: entity || "sensor.garbage_view_schedule", style: "apple", days: 7, show_summary: true };
   }
 
   // Imposta il periodo del calendario: "week" = questa settimana, "next_week" = la prossima, "month" = il mese.
@@ -875,7 +875,7 @@ class GarbageViewCard extends HTMLElement {
   }
 
   _buildStrip(daysIn, byId, t) {
-    // Il backend manda `horizon_days` giorni a partire da oggi; ne mostriamo 7 o 14.
+    // Il backend manda `horizon_days` giorni a partire da oggi; ne mostriamo 7 (default) o 14.
     const days = daysIn.filter((d) => d && parseDate(d.date)).slice(0, this._config.days);
     if (!days.some((d) => d.date === this._selected)) this._selected = null;
 
@@ -1093,7 +1093,7 @@ class GarbageViewCardEditor extends HTMLElement {
     this._styleSel = this._select([["apple", t.apple], ["homekit", t.homekit]]);
     this._field(t.style, this._styleSel);
 
-    this._days = this._select([["14", t.days_14], ["7", t.days_7]]);
+    this._days = this._select([["7", t.days_7], ["14", t.days_14]]);
     this._field(t.days, this._days);
 
     this._showSummary = el("input");
@@ -1174,7 +1174,7 @@ class GarbageViewCardEditor extends HTMLElement {
     if (active !== this._entity) this._entity.value = c.entity || "";
     if (active !== this._title) this._title.value = c.title || "";
     this._styleSel.value = c.style === "homekit" ? "homekit" : "apple";
-    this._days.value = Number(c.days) === 7 ? "7" : "14";
+    this._days.value = Number(c.days) === 14 ? "14" : "7";
     this._startExpanded.checked = c.start_expanded === true || (c.start_expanded === undefined && c.view === "calendar");
     this._mode.value = CAL_MODES.includes(c.calendar_mode) ? c.calendar_mode : "week";
     this._showToggle.checked = c.show_view_toggle !== false;
@@ -1203,7 +1203,7 @@ class GarbageViewCardEditor extends HTMLElement {
     set("entity", this._entity.value.trim(), true);
     set("title", this._title.value, this._title.value.trim() !== "");
     set("style", this._styleSel.value, true);
-    set("days", 7, this._days.value === "7"); // 14 è il default
+    set("days", 14, this._days.value === "14"); // 7 è il default
     delete config.view; // opzione 0.2.0, sostituita da start_expanded
     set("start_expanded", true, this._startExpanded.checked); // false è il default
     set("calendar_mode", this._mode.value, this._mode.value !== "week"); // week è il default

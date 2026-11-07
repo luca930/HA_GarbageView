@@ -36,7 +36,7 @@ type: custom:garbage-view-card
 entity: sensor.garbage_view_schedule   # obbligatorio
 title: Raccolta differenziata          # opzionale
 style: apple                           # apple | homekit
-days: 14                               # 7 | 14
+days: 7                                # 7 (default, settimana corrente) | 14
 start_expanded: false                  # true = calendario già aperto (sostituisce `view: calendar`)
 calendar_mode: week                    # week | next_week | month (periodo iniziale)
 show_view_toggle: true                 # piccolo chevron per espandere il calendario
@@ -134,7 +134,7 @@ type: custom:garbage-view-card
 entity: sensor.garbage_view_schedule   # required
 title: Recycling                       # optional
 style: apple                           # apple | homekit
-days: 14                               # 7 | 14
+days: 7                                # 7 (default, current week) | 14
 start_expanded: false                  # true = calendar already open (replaces `view: calendar`)
 calendar_mode: week                    # week | next_week | month (initial period)
 show_view_toggle: true                 # small chevron to expand the calendar
