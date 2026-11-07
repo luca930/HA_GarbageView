@@ -25,6 +25,10 @@ const SUPPORTED_SCHEMA = 1;
 const STRINGS = {
   it: {
     today: "Oggi",
+    tomorrow: "Domani",
+    in_days: (n) => `${n} giorni`,
+    next_label: "Prossimo",
+    nothing_next: "Nessun ritiro in programma",
     nothing_today: "Niente da buttare oggi",
     out_today: (n) => (n === 1 ? "Oggi si butta 1 tipo" : `Oggi si buttano ${n} tipi`),
     nothing_day: "Nessuna raccolta",
@@ -37,6 +41,10 @@ const STRINGS = {
   },
   en: {
     today: "Today",
+    tomorrow: "Tomorrow",
+    in_days: (n) => `${n} days`,
+    next_label: "Next",
+    nothing_next: "No collection scheduled",
     nothing_today: "Nothing to put out today",
     out_today: (n) => (n === 1 ? "1 type to put out today" : `${n} types to put out today`),
     nothing_day: "No collection",
@@ -105,82 +113,73 @@ const STYLES = `
   .title { font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; margin: 0; }
   .summary { font-size: .85rem; color: var(--gv-text-secondary); }
 
-  /* ---- Riga dei tipi di rifiuto ---- */
+  /* ---- Tessere dei tipi di rifiuto ---- */
   .types {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(var(--gv-tile-size), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(var(--gv-tile-size), 1fr));
     gap: var(--gv-gap);
   }
   .tile {
-    /* --c = colore del rifiuto (già validato come #RRGGBB) */
+    /* --c = colore del rifiuto (già validato come #RRGGBB), --on-c = testo leggibile sopra --c */
     --c: var(--gv-accent);
+    --on-c: #fff;
     position: relative;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 6px;
-    min-height: var(--gv-tile-size);   /* >= 44px: target tocco comodo */
-    padding: 10px 6px;
+    min-height: calc(var(--gv-tile-size) + 28px);
+    padding: 14px 8px;
     border-radius: var(--gv-radius);
-    background: var(--gv-tile-bg);
+    /* Tessera "tinta" col colore del rifiuto, come nell'esempio di riferimento */
+    background: linear-gradient(160deg, color-mix(in srgb, var(--c) 30%, var(--gv-tile-bg)), color-mix(in srgb, var(--c) 12%, var(--gv-tile-bg)));
+    border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
     color: var(--gv-text);
-    box-shadow: var(--gv-shadow);
     box-sizing: border-box;
     text-align: center;
     transition: transform var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1),
-                box-shadow var(--gv-anim-duration) ease,
-                opacity var(--gv-anim-duration) ease;
+                box-shadow var(--gv-anim-duration) ease;
     animation: gv-pop var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1) both;
     animation-delay: calc(var(--i, 0) * 40ms);
   }
-  .tile .icon { color: var(--c); --mdc-icon-size: 28px; font-size: 1.6rem; line-height: 1; font-weight: 700; }
-  .tile .name { font-size: .78rem; font-weight: 500; line-height: 1.15; overflow-wrap: anywhere; }
-  .tile .when { font-size: .68rem; color: var(--gv-text-secondary); }
-  /* Non in scadenza oggi: leggermente attenuata per far risaltare quelle di oggi */
-  .types.has-today .tile:not(.today) { opacity: .62; }
-  /* In scadenza oggi: sfondo del colore del rifiuto, testo bianco, leggero "respiro" */
-  .tile.today {
-    background: var(--c);
-    color: var(--on-c, #fff);   /* bianco o nero, scelto in base al contrasto */
-    transform: scale(1.04);
-    box-shadow: 0 6px 20px color-mix(in srgb, var(--c) 45%, transparent);
+  .tile .icon { color: var(--c); --mdc-icon-size: 40px; font-size: 2rem; line-height: 1; font-weight: 700; display: flex; }
+  .tile .name { font-size: .8rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gv-text-secondary); overflow-wrap: anywhere; }
+  .tile .badge {
+    font-size: .8rem; font-weight: 700; padding: 3px 12px; border-radius: 999px;
+    background: var(--c); color: var(--on-c);
+  }
+  .tile .when { font-size: .72rem; color: var(--gv-text-secondary); }
+  /* Evidenziata (oggi, oppure il prossimo ritiro): bordo e alone del suo colore + leggero "respiro" */
+  .tile.hl {
+    border-color: var(--c);
+    box-shadow: 0 0 0 2px var(--c), 0 6px 22px color-mix(in srgb, var(--c) 50%, transparent);
     animation: gv-pop var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1) both,
-               gv-pulse 2.6s ease-in-out 1s infinite;
+               gv-pulse 2.8s ease-in-out 1s infinite;
     animation-delay: calc(var(--i, 0) * 40ms), 1s;
   }
-  .tile.today .icon { color: var(--on-c, #fff); }
-  .tile.today .when { color: var(--on-c, #fff); opacity: .85; }
-  .badge {
-    position: absolute; top: 6px; right: 8px;
-    font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
-    background: rgba(128, 128, 128, .28); border-radius: 999px; padding: 1px 6px;
-  }
+  .tile.today .badge { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 35%, transparent); }
 
-  /* ---- Riga dei giorni ---- */
-  .week { margin-top: 16px; }
-  .week-label { font-size: .75rem; color: var(--gv-text-secondary); margin: 0 4px 8px; text-transform: uppercase; letter-spacing: .06em; }
-  .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: calc(var(--gv-gap) / 2); }
+  /* ---- Striscia dei giorni ---- */
+  .strip { display: grid; gap: 4px; margin-top: 16px; }
   .day {
     all: unset;                         /* reset del <button> */
     box-sizing: border-box;
-    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-    gap: 4px;
-    min-height: 56px; padding: 8px 2px;
-    border-radius: calc(var(--gv-radius) * .7);
-    background: var(--gv-tile-bg);
-    color: var(--gv-text);
-    cursor: pointer;
-    transition: transform var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1), background var(--gv-anim-duration) ease;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    cursor: pointer; border-radius: 10px; padding: 2px 0;
   }
-  .day:hover { transform: translateY(-2px); }
-  .day:active { transform: scale(.95); }
-  .day:focus-visible { outline: 3px solid var(--gv-accent); outline-offset: 2px; }
-  .day .dow { font-size: .68rem; text-transform: uppercase; color: var(--gv-text-secondary); font-weight: 600; }
-  .day .num { font-size: 1.05rem; font-weight: 600; }
-  .dots { display: flex; gap: 3px; min-height: 8px; flex-wrap: wrap; justify-content: center; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
-  .day.today { background: var(--gv-accent); color: #fff; }
-  .day.today .dow { color: rgba(255, 255, 255, .85); }
-  .day.today .dot { box-shadow: 0 0 0 1.5px #fff; }
-  .day[aria-pressed="true"]:not(.today) { box-shadow: inset 0 0 0 2px var(--gv-accent); }
+  .day:focus-visible { outline: 3px solid var(--gv-accent); outline-offset: 1px; }
+  .day .dow { font-size: .68rem; color: var(--gv-text-secondary); }
+  .day .cell {
+    width: 100%; min-height: 44px;      /* altezza >= 44px: target tocco comodo */
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; box-sizing: border-box;
+    background: var(--gv-tile-bg); color: var(--gv-text-secondary);
+    font-size: .8rem; font-weight: 600;
+    transition: transform var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1);
+  }
+  .day:hover .cell { transform: translateY(-2px); }
+  .day:active .cell { transform: scale(.94); }
+  .day.has .cell { color: var(--on-c, #fff); }                 /* sfondo impostato in JS */
+  .day.today .cell { outline: 2px solid var(--gv-text); outline-offset: 1px; }
+  .day[aria-pressed="true"] .cell { box-shadow: 0 0 0 3px var(--gv-accent); }
 
   /* ---- Dettaglio del giorno toccato ---- */
   .detail { margin: 12px 4px 0; font-size: .9rem; animation: gv-fade var(--gv-anim-duration) ease both; }
@@ -188,15 +187,26 @@ const STYLES = `
   .detail .d-title { font-weight: 600; margin-bottom: 6px; text-transform: capitalize; }
   .detail ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   .detail li { display: flex; align-items: center; gap: 8px; }
-  .detail li .dot { flex: none; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
   .detail .none { color: var(--gv-text-secondary); }
+
+  /* ---- Barra riepilogo "Prossimo" ---- */
+  .summary-bar {
+    --c: var(--gv-accent);
+    margin-top: 14px; padding: 12px 16px; border-radius: var(--gv-radius);
+    background: var(--gv-tile-bg); display: flex; align-items: center; gap: 12px;
+    font-size: .95rem; animation: gv-fade var(--gv-anim-duration) ease both;
+  }
+  .summary-bar .icon { color: var(--c); --mdc-icon-size: 26px; font-size: 1.3rem; font-weight: 700; display: flex; }
+  .summary-bar .txt { color: var(--gv-text-secondary); }
+  .summary-bar strong { color: var(--gv-text); }
 
   .message { padding: 16px; color: var(--gv-text-secondary); font-size: .9rem; }
 
   /* ---- Animazioni ---- */
-  @keyframes gv-pop   { from { opacity: 0; transform: scale(.85); } }
+  @keyframes gv-pop   { from { opacity: 0; transform: scale(.88); } }
   @keyframes gv-fade  { from { opacity: 0; transform: translateY(-4px); } }
-  @keyframes gv-pulse { 50% { transform: scale(1.07); } }
+  @keyframes gv-pulse { 50% { transform: scale(1.03); } }
 
   /* Accessibilità: chi preferisce meno movimento non vede animazioni */
   @media (prefers-reduced-motion: reduce) {
@@ -291,8 +301,8 @@ class GarbageViewCard extends HTMLElement {
     const style = config.style === "homekit" ? "homekit" : "apple";
     this._config = {
       title: typeof config.title === "string" ? config.title.slice(0, 80) : "",
-      week_start: config.week_start === "sunday" ? "sunday" : "monday",
-      show_week: config.show_week !== false,
+      days: Number(config.days) === 7 ? 7 : 14,
+      show_summary: config.show_summary !== false,
       style,
       entity: String(config.entity),
       css: config.css,
@@ -318,11 +328,11 @@ class GarbageViewCard extends HTMLElement {
     this._render();
   }
 
-  getCardSize() { return this._config && this._config.show_week ? 5 : 2; }
+  getCardSize() { return 4; }
 
   static getStubConfig(hass) {
     const entity = hass && Object.keys(hass.states).find((e) => e.startsWith("sensor.garbage_view"));
-    return { entity: entity || "sensor.garbage_view_schedule", style: "apple", show_week: true };
+    return { entity: entity || "sensor.garbage_view_schedule", style: "apple", days: 14, show_summary: true };
   }
 
   // Applica le variabili --gv-* dell'opzione `css` (già filtrate).
@@ -335,18 +345,53 @@ class GarbageViewCard extends HTMLElement {
     }
   }
 
-  _t() {
-    const lang = ((this._hass && (this._hass.locale?.language || this._hass.language)) || "it").slice(0, 2);
-    return STRINGS[lang] || STRINGS.en;
-  }
-
   _lang() {
     return (this._hass && (this._hass.locale?.language || this._hass.language)) || "it";
+  }
+
+  _t() {
+    return STRINGS[this._lang().slice(0, 2)] || STRINGS.en;
+  }
+
+  // "gio 12/11" — sigla del giorno + giorno/mese.
+  _shortDate(date) {
+    const wd = date.toLocaleDateString(this._lang(), { weekday: "short" }).replace(".", "");
+    return `${wd} ${date.getDate()}/${date.getMonth() + 1}`;
+  }
+
+  _longDate(date) {
+    return date.toLocaleDateString(this._lang(), { weekday: "long", day: "numeric", month: "long" });
+  }
+
+  // "Oggi" / "Domani" / "N giorni"
+  _relative(days, t) {
+    return days === 0 ? t.today : days === 1 ? t.tomorrow : t.in_days(days);
   }
 
   // Mostra un messaggio (errore / stato vuoto) al posto del contenuto.
   _showMessage(text) {
     this._content.replaceChildren(el("div", "message", text));
+  }
+
+  // Icona del tipo: <ha-icon> se disponibile (in HA lo è sempre), altrimenti l'iniziale.
+  _icon(type) {
+    const wrap = el("div", "icon");
+    wrap.setAttribute("aria-hidden", "true");
+    if (ICON_RE.test(type.icon) && customElements.get("ha-icon")) {
+      const icon = document.createElement("ha-icon");
+      icon.setAttribute("icon", type.icon);
+      wrap.append(icon);
+    } else {
+      wrap.textContent = String(type.name || "?").charAt(0).toUpperCase();
+    }
+    return wrap;
+  }
+
+  // Imposta --c e --on-c su un elemento, solo se il colore è valido.
+  _paint(node, color) {
+    if (!COLOR_RE.test(color)) return;
+    node.style.setProperty("--c", color);
+    node.style.setProperty("--on-c", readableOn(color));
   }
 
   _render() {
@@ -363,103 +408,91 @@ class GarbageViewCard extends HTMLElement {
     const types = (Array.isArray(a.types) ? a.types : []).filter((x) => x && ID_RE.test(x.id));
     if (!types.length) return this._showMessage(t.no_types);
     const byId = new Map(types.map((x) => [x.id, x]));
-    const todayItems = new Set(Array.isArray(a.today_items) ? a.today_items : []);
+
+    // Quali tessere evidenziare: quelle di oggi; se non ce ne sono, quelle
+    // con il prossimo ritiro (stessa distanza di next_item).
+    const daysUntil = (x) => (x.next && Number.isInteger(x.next.days_until) ? x.next.days_until : null);
+    const todays = types.filter((x) => daysUntil(x) === 0);
+    const nextDist = a.next_item && Number.isInteger(a.next_item.days_until) ? a.next_item.days_until : null;
+    const highlighted = new Set((todays.length ? todays : types.filter((x) => nextDist !== null && daysUntil(x) === nextDist)).map((x) => x.id));
 
     const frag = document.createDocumentFragment();
 
-    // Intestazione: titolo + riepilogo di oggi
-    const header = el("div", "header");
-    if (this._config.title) header.append(el("h2", "title", this._config.title));
-    const nToday = types.filter((x) => todayItems.has(x.id)).length;
-    header.append(el("span", "summary", nToday ? t.out_today(nToday) : t.nothing_today));
-    frag.append(header);
+    if (this._config.title) {
+      const header = el("div", "header");
+      header.append(el("h2", "title", this._config.title));
+      frag.append(header);
+    }
 
-    // Quadrati dei tipi di rifiuto
-    const grid = el("div", "types" + (nToday ? " has-today" : ""));
+    const grid = el("div", "types");
     grid.setAttribute("role", "list");
-    types.forEach((type, i) => grid.append(this._buildTile(type, i, todayItems.has(type.id), a.next, t)));
+    types.forEach((type, i) => grid.append(this._buildTile(type, i, highlighted.has(type.id), t)));
     frag.append(grid);
 
-    // Riga della settimana
-    if (this._config.show_week && Array.isArray(a.days)) {
-      frag.append(this._buildWeek(a.days, byId, t));
-    }
+    if (Array.isArray(a.days)) frag.append(this._buildStrip(a.days, byId, t));
+    if (this._config.show_summary) frag.append(this._buildSummary(a.next_item, byId, t));
 
     this._content.replaceChildren(frag);
   }
 
-  _buildTile(type, index, isToday, next, t) {
-    const tile = el("div", "tile" + (isToday ? " today" : ""));
+  _buildTile(type, index, highlighted, t) {
+    const dist = type.next && Number.isInteger(type.next.days_until) ? type.next.days_until : null;
+    const nextDate = type.next ? parseDate(type.next.date) : null;
+    const tile = el("div", "tile" + (highlighted ? " hl" : "") + (dist === 0 ? " today" : ""));
     tile.setAttribute("role", "listitem");
     tile.style.setProperty("--i", String(index)); // ritardo animazione a cascata
-    if (COLOR_RE.test(type.color)) {
-      tile.style.setProperty("--c", type.color);
-      tile.style.setProperty("--on-c", readableOn(type.color));
-    }
+    this._paint(tile, type.color);
 
-    // Icona: <ha-icon> se disponibile (in HA lo è sempre); altrimenti iniziale.
-    const iconWrap = el("div", "icon");
-    iconWrap.setAttribute("aria-hidden", "true");
-    if (ICON_RE.test(type.icon) && customElements.get("ha-icon")) {
-      const icon = document.createElement("ha-icon");
-      icon.setAttribute("icon", type.icon);
-      iconWrap.append(icon);
-    } else {
-      iconWrap.textContent = String(type.name || "?").charAt(0).toUpperCase();
+    tile.append(this._icon(type), el("div", "name", String(type.name || "").slice(0, 40)));
+    if (dist !== null && nextDate) {
+      tile.append(el("div", "badge", this._relative(dist, t)));
+      if (dist !== 0) tile.append(el("div", "when", this._shortDate(nextDate)));
     }
-    tile.append(iconWrap, el("div", "name", String(type.name || "").slice(0, 40)));
-
-    // Riga secondaria: "Oggi" oppure data del prossimo ritiro
-    const nextIso = next && next[type.id];
-    const nextDate = parseDate(nextIso);
-    if (!isToday && nextDate) {
-      tile.append(el("div", "when", nextDate.toLocaleDateString(this._lang(), { weekday: "short", day: "numeric" })));
-    }
-    if (isToday) tile.append(el("span", "badge", t.today));
 
     // Etichetta per screen reader (il testo visibile è frammentato).
-    const label = [type.name, isToday ? t.today : nextDate ? `${t.next}: ${nextDate.toLocaleDateString(this._lang(), { weekday: "long", day: "numeric", month: "long" })}` : ""];
-    tile.setAttribute("aria-label", label.filter(Boolean).join(", "));
+    const label = [type.name];
+    if (dist !== null && nextDate) label.push(dist === 0 ? t.today : `${t.next_label}: ${this._relative(dist, t)}, ${this._longDate(nextDate)}`);
+    tile.setAttribute("aria-label", label.join(", "));
     return tile;
   }
 
-  _buildWeek(daysIn, byId, t) {
-    // Il contratto manda sempre lun→dom; se serve domenica per prima ruotiamo.
-    let days = daysIn.filter((d) => d && parseDate(d.date));
-    if (this._config.week_start === "sunday") {
-      const sunday = days.findIndex((d) => d.weekday === 6);
-      if (sunday > 0) days = [days[sunday], ...days.slice(0, sunday), ...days.slice(sunday + 1)];
-    }
+  _buildStrip(daysIn, byId, t) {
+    // Il backend manda `horizon_days` giorni a partire da oggi; ne mostriamo 7 o 14.
+    const days = daysIn.filter((d) => d && parseDate(d.date)).slice(0, this._config.days);
+    if (!days.some((d) => d.date === this._selected)) this._selected = null;
 
     const section = el("div", "week");
-    section.append(el("div", "week-label", t.week));
-    const row = el("div", "days");
+    const strip = el("div", "strip");
+    strip.style.gridTemplateColumns = `repeat(${days.length || 1}, minmax(0, 1fr))`;
     const detail = el("div", "detail");
     detail.setAttribute("aria-live", "polite");
-
-    // Se il giorno selezionato non è più nella settimana, deseleziona.
-    if (!days.some((d) => d.date === this._selected)) this._selected = null;
 
     const buttons = [];
     days.forEach((d) => {
       const date = parseDate(d.date);
       const items = (Array.isArray(d.items) ? d.items : []).map((id) => byId.get(id)).filter(Boolean);
-      const btn = el("button", "day" + (d.is_today ? " today" : ""));
+      const btn = el("button", "day" + (d.is_today ? " today" : "") + (items.length ? " has" : ""));
       btn.type = "button";
       btn.setAttribute("aria-pressed", String(d.date === this._selected));
-      const longDate = date.toLocaleDateString(this._lang(), { weekday: "long", day: "numeric", month: "long" });
-      btn.setAttribute("aria-label", `${d.is_today ? t.today + ", " : ""}${longDate}: ${items.length ? items.map((x) => x.name).join(", ") : t.nothing_day}`);
+      btn.setAttribute("aria-label", `${d.is_today ? t.today + ", " : ""}${this._longDate(date)}: ${items.length ? items.map((x) => x.name).join(", ") : t.nothing_day}`);
 
-      btn.append(el("span", "dow", date.toLocaleDateString(this._lang(), { weekday: "short" })));
-      btn.append(el("span", "num", String(date.getDate())));
-      const dots = el("span", "dots");
-      dots.setAttribute("aria-hidden", "true");
-      items.forEach((x) => {
-        const dot = el("span", "dot");
-        if (COLOR_RE.test(x.color)) dot.style.setProperty("--c", x.color);
-        dots.append(dot);
-      });
-      btn.append(dots);
+      const dow = el("span", "dow", date.toLocaleDateString(this._lang(), { weekday: "short" }).replace(".", ""));
+      dow.setAttribute("aria-hidden", "true");
+      const cell = el("span", "cell", String(date.getDate()));
+      cell.setAttribute("aria-hidden", "true");
+
+      // Giorno con ritiro: cella piena col colore del tipo; più tipi = bande verticali.
+      const colors = items.map((x) => x.color).filter((c) => COLOR_RE.test(c));
+      if (colors.length === 1) {
+        cell.style.background = colors[0];
+        btn.style.setProperty("--on-c", readableOn(colors[0]));
+      } else if (colors.length > 1) {
+        const step = 100 / colors.length;
+        cell.style.background = `linear-gradient(90deg, ${colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`).join(", ")})`;
+        btn.style.setProperty("--on-c", "#fff");
+        cell.style.textShadow = "0 1px 2px rgba(0,0,0,.6)";
+      }
+      btn.append(dow, cell);
 
       // Tocco: seleziona/deseleziona il giorno e mostra il dettaglio.
       btn.addEventListener("click", () => {
@@ -468,10 +501,10 @@ class GarbageViewCard extends HTMLElement {
         this._fillDetail(detail, days, byId, t);
       });
       buttons.push([btn, d.date]);
-      row.append(btn);
+      strip.append(btn);
     });
 
-    section.append(row, detail);
+    section.append(strip, detail);
     this._fillDetail(detail, days, byId, t);
     return section;
   }
@@ -480,8 +513,7 @@ class GarbageViewCard extends HTMLElement {
     container.replaceChildren();
     const d = days.find((x) => x.date === this._selected);
     if (!d) return;
-    const date = parseDate(d.date);
-    container.append(el("div", "d-title", date.toLocaleDateString(this._lang(), { weekday: "long", day: "numeric", month: "long" })));
+    container.append(el("div", "d-title", this._longDate(parseDate(d.date))));
     const items = (Array.isArray(d.items) ? d.items : []).map((id) => byId.get(id)).filter(Boolean);
     if (!items.length) {
       container.append(el("div", "none", t.nothing_day));
@@ -497,6 +529,24 @@ class GarbageViewCard extends HTMLElement {
     });
     container.append(ul);
   }
+
+  // Barra "Prossimo: Plastica · sab 7/11 · oggi"
+  _buildSummary(nextItem, byId, t) {
+    const bar = el("div", "summary-bar");
+    bar.setAttribute("role", "status");
+    const type = nextItem && byId.get(nextItem.id);
+    const date = nextItem && parseDate(nextItem.date);
+    if (!type || !date || !Number.isInteger(nextItem.days_until)) {
+      bar.append(el("span", "txt", t.nothing_next));
+      return bar;
+    }
+    this._paint(bar, type.color);
+    const txt = el("span", "txt");
+    txt.append(`${t.next_label}: `, el("strong", null, String(type.name).slice(0, 40)),
+      ` · ${this._shortDate(date)} · ${this._relative(nextItem.days_until, t).toLowerCase()}`);
+    bar.append(this._icon(type), txt);
+    return bar;
+  }
 }
 
 if (!customElements.get("garbage-view-card")) {
@@ -507,7 +557,7 @@ if (!window.customCards.some((c) => c.type === "garbage-view-card")) {
   window.customCards.push({
     type: "garbage-view-card",
     name: "Garbage View",
-    description: "Cosa buttare oggi e nella settimana (stile Apple / HomeKit)",
+    description: "Cosa buttare oggi e nei prossimi giorni (stile Apple / HomeKit)",
     preview: true,
   });
 }
