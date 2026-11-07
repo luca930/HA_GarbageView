@@ -1,12 +1,12 @@
 {
   "domain": "garbage_view",
   "name": "HA Garbage View",
-  "version": "0.1.0",
-  "documentation": "https://github.com/luca930/HA_GarbageView",
-  "issue_tracker": "https://github.com/luca930/HA_GarbageView/issues",
   "codeowners": ["@luca930"],
   "config_flow": true,
   "dependencies": ["http", "frontend"],
+  "documentation": "https://github.com/luca930/HA_GarbageView",
   "iot_class": "calculated",
-  "requirements": []
+  "issue_tracker": "https://github.com/luca930/HA_GarbageView/issues",
+  "requirements": [],
+  "version": "0.1.0"
 }
