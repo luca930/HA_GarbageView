@@ -29,6 +29,8 @@ La card viene registrata automaticamente: non serve aggiungere risorse a mano.
 ### Configurazione
 Dalla scheda dell'integrazione → **Configura** puoi aggiungere, modificare e rimuovere i tipi di rifiuto (nome, icona `mdi:`, ricorrenza).
 
+Aggiungendo un tipo scegli prima un **preset** (Umido, Plastica, Carta, Vetro, Indifferenziato, Sfalci e verde, Lattine e metalli, Plastica e lattine, Ingombranti, Oli esausti, Tessili, Pile) che precompila nome (nella lingua di Home Assistant) e icona, oppure **Personalizzato…**. Nome e icona restano modificabili. L'icona si sceglie col selettore di Home Assistant (con ricerca e anteprima); se non trovi quella che ti serve, **scrivi a mano qualsiasi icona** `mdi:nome-icona` (le trovi su [pictogrammers.com/library/mdi](https://pictogrammers.com/library/mdi/)). Sono accettate solo icone nel formato `mdi:lettere-numeri-trattini`.
+
 Poi aggiungi la card (anche dall'editor visuale):
 
 ```yaml
@@ -126,6 +128,8 @@ The card is registered automatically: no manual resource needed.
 
 ### Configuration
 From the integration page → **Configure** you can add, edit and remove waste types (name, `mdi:` icon, recurrence).
+
+When adding a type you first pick a **preset** (Organic, Plastic, Paper, Glass, General waste, Garden waste, Cans and metals, Plastic and cans, Bulky waste, Used oil, Textiles, Batteries) that prefills the name (in Home Assistant's language) and icon, or **Custom…**. Both stay editable. The icon uses Home Assistant's icon picker (search and preview); if the one you need is not listed, **type any** `mdi:icon-name` by hand (browse them at [pictogrammers.com/library/mdi](https://pictogrammers.com/library/mdi/)). Only icons in the `mdi:letters-digits-dashes` format are accepted.
 
 Then add the card (the visual editor works too):
 

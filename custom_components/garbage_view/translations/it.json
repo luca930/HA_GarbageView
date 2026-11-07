@@ -23,6 +23,13 @@
           "notifications": "Notifiche sul telefono"
         }
       },
+      "preset": {
+        "title": "Nuovo tipo di rifiuto",
+        "description": "Scegli un tipo pronto per precompilare nome e icona (potrai modificarli), oppure «Personalizzato».",
+        "data": {
+          "preset": "Tipo"
+        }
+      },
       "details": {
         "title": "Tipo di rifiuto",
         "description": "Nome, icona e frequenza di raccolta.",
@@ -32,7 +39,7 @@
           "rule_type": "Ricorrenza"
         },
         "data_description": {
-          "icon": "Icona Material Design, es. mdi:food-apple"
+          "icon": "Cerca nell'elenco oppure scrivi qualsiasi icona Material Design, es. mdi:food-apple (le trovi su pictogrammers.com/library/mdi)"
         }
       },
       "rule_weekly": {
@@ -153,6 +160,23 @@
       "options": {
         "today": "Oggi",
         "tomorrow": "Domani (promemoria serale)"
+      }
+    },
+    "preset": {
+      "options": {
+        "organic": "Umido",
+        "plastic": "Plastica",
+        "paper": "Carta",
+        "glass": "Vetro",
+        "residual": "Indifferenziato",
+        "garden": "Sfalci e verde",
+        "metal": "Lattine e metalli",
+        "plastic_metal": "Plastica e lattine",
+        "bulky": "Ingombranti",
+        "oil": "Oli esausti",
+        "textiles": "Tessili",
+        "batteries": "Pile",
+        "custom": "Personalizzato…"
       }
     }
   },
