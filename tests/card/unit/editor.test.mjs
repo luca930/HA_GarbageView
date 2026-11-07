@@ -164,3 +164,20 @@ describe("editor: opzioni del calendario", () => {
     expect(events.at(-1)).not.toHaveProperty("show_view_toggle");
   });
 });
+
+describe("editor: larghezza minima delle tessere", () => {
+  it("scrive tile_min_width e lo toglie se il campo è vuoto o non valido", async () => {
+    const ed = document.createElement("garbage-view-card-editor");
+    ed.setConfig({ type: "custom:garbage-view-card", entity: "sensor.garbage_view_schedule" });
+    document.body.append(ed);
+    let cfg;
+    ed.addEventListener("config-changed", (e) => (cfg = e.detail.config));
+    const input = ed.shadowRoot.querySelector('input[type="number"]');
+    input.value = "110";
+    input.dispatchEvent(new Event("input"));
+    expect(cfg.tile_min_width).toBe(110);
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+    expect(cfg).not.toHaveProperty("tile_min_width");
+  });
+});

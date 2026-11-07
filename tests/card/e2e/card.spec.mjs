@@ -180,6 +180,80 @@ test("calendario: l'editor cambia espansione e periodo in diretta", async ({ pag
   expect(config).not.toHaveProperty("view");
 });
 
+// --- Tessere che riempiono la larghezza (0.2.2) -----------------------------
+// Per 1–8 tessere e larghezze strette/larghe: ogni riga arriva fino ai bordi,
+// nessuna tessera è sotto il minimo, nessun overflow, righe bilanciate
+// (la riga più corta ha al massimo una tessera in meno di quella più lunga).
+const manyTypes = (n) => {
+  const s = structuredClone(state);
+  const base = s.attributes.types;
+  s.attributes.types = Array.from({ length: n }, (_, i) => ({
+    ...base[i % base.length],
+    id: `tipo_${i}`,
+    name: i === 4 ? "Plastica e lattine" : `Tipo ${i + 1}`,
+  }));
+  return s;
+};
+
+for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) {
+  for (const width of [260, 360, 407, 600, 900]) {
+    test(`tessere: ${n} tessere in ${width}px riempiono le righe`, async ({ page }) => {
+      await page.setViewportSize({ width: width + 40, height: 900 });
+      await page.goto(harness);
+      await page.evaluate(([c, s]) => window.mountCard(c, s), [{ ...base, style: "apple" }, manyTypes(n)]);
+      await expect(page.locator("garbage-view-card .tile")).toHaveCount(n);
+      await page.waitForTimeout(700);
+      const m = await page.locator("garbage-view-card").evaluate((card) => {
+        const grid = card.shadowRoot.querySelector(".types");
+        // offset* = misure di layout: non risentono del "respiro" (transform) della tessera di oggi
+        const g = { left: grid.offsetLeft, right: grid.offsetLeft + grid.offsetWidth };
+        const min = parseFloat(getComputedStyle(grid.firstElementChild).minWidth);
+        const rows = new Map();
+        for (const t of grid.children) {
+          const r = { left: t.offsetLeft, right: t.offsetLeft + t.offsetWidth, width: t.offsetWidth };
+          (rows.get(t.offsetTop) || rows.set(t.offsetTop, []).get(t.offsetTop)).push(r);
+        }
+        return {
+          min,
+          gridLeft: g.left, gridRight: g.right,
+          scrollOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          rows: [...rows.values()].map((r) => ({ n: r.length, left: Math.min(...r.map((x) => x.left)), right: Math.max(...r.map((x) => x.right)), minW: Math.min(...r.map((x) => x.width)) })),
+        };
+      });
+      expect(m.scrollOverflow).toBe(false);
+      for (const row of m.rows) {
+        expect(Math.abs(row.left - m.gridLeft)).toBeLessThan(1.5);
+        expect(Math.abs(row.right - m.gridRight)).toBeLessThan(1.5);
+        if (width >= 2 * m.min + 10) expect(row.minW).toBeGreaterThanOrEqual(m.min - 1);
+      }
+      // righe bilanciate: differiscono al massimo di una tessera, quindi nessuna tessera sola in fondo
+      const counts = m.rows.map((r) => r.n);
+      expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1);
+    });
+  }
+}
+
+test("tile_min_width allarga il minimo e porta a capo prima", async ({ page }) => {
+  await page.setViewportSize({ width: 447, height: 900 });
+  await page.goto(harness);
+  await page.evaluate(([c, s]) => window.mountCard(c, s), [{ ...base, style: "apple", tile_min_width: 150 }, manyTypes(4)]);
+  await page.waitForTimeout(700);
+  const widths = await page.locator("garbage-view-card .tile").evaluateAll((t) => t.map((x) => x.offsetWidth));
+  for (const w of widths) expect(w).toBeGreaterThanOrEqual(149);
+  const tops = await page.locator("garbage-view-card .tile").evaluateAll((t) => new Set(t.map((x) => x.offsetTop)).size);
+  expect(tops).toBe(2);
+});
+
+test("screenshot tessere: 5 tessere, stretto e largo", async ({ page }) => {
+  for (const [name, w, dark] of [["tessere-5-stretto", 407, true], ["tessere-5-largo", 760, false]]) {
+    await page.setViewportSize({ width: w + 40, height: 900 });
+    await page.goto(harness);
+    await page.evaluate(([c, s, d]) => window.mountCard(c, s, { dark: d }), [{ ...base, style: "apple" }, manyTypes(5), dark]);
+    await page.waitForTimeout(1500);
+    await page.locator("garbage-view-card").screenshot({ path: join(shots, `${name}.png`), animations: "disabled" });
+  }
+});
+
 test("orario di ritiro: tessere e barra accese solo quando due_now", async ({ page }) => {
   const withDue = (ids) => {
     const s = structuredClone(state);
