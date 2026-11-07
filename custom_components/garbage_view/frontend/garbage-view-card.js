@@ -676,6 +676,9 @@ class GarbageViewCard extends HTMLElement {
     b.addEventListener("click", () => {
       this._expanded = b.getAttribute("aria-expanded") !== "true";
       this._selected = null;
+      // Azzera anche ciò che dipende dalla selezione (stato premuto e dettaglio).
+      for (const d of this._root.querySelectorAll(".day, .cal-day")) d.setAttribute("aria-pressed", "false");
+      for (const d of this._root.querySelectorAll(".detail")) d.replaceChildren();
       b.setAttribute("aria-expanded", String(this._expanded));
       label.textContent = this._expanded ? t.collapse : t.expand;
       if (this._expanded && !this._calendar.firstChild.firstChild) this._fillCalendar();

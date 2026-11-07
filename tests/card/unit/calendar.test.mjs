@@ -149,6 +149,15 @@ describe("navigazione", () => {
     expect(q(card, ".strip").closest(".collapse").hasAttribute("inert")).toBe(false);
   });
 
+  it("espandere azzera giorno selezionato e dettaglio", () => {
+    const card = mountCard();
+    click(qa(card, ".day")[0]);
+    expect(q(card, ".strip + .detail").textContent).not.toBe("");
+    click(q(card, ".expander"));
+    expect(qa(card, ".day[aria-pressed='true']")).toHaveLength(0);
+    expect(q(card, ".strip + .detail").textContent).toBe("");
+  });
+
   it("lo stato espanso sopravvive a un aggiornamento di hass", () => {
     const card = mountCard();
     click(q(card, ".expander"));
