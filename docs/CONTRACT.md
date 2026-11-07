@@ -28,38 +28,46 @@ Regole (`rule`):
 
 ## 2. Entità `sensor.garbage_view_schedule`
 - `state`: numero (int) di tipi da buttare oggi.
-- `attributes`:
+- `attributes` (esempio completo in `tests/fixtures/schedule_example.json`):
 ```json
 {
   "schema_version": 1,
   "today": "2026-11-07",
   "weekday": 5,
-  "week_start": "2026-11-02",
-  "types": [{ "id": "umido", "name": "Umido", "icon": "mdi:food-apple", "color": "#8E5A2B" }],
-  "today_items": ["umido"],
-  "days": [
-    { "date": "2026-11-02", "weekday": 0, "is_today": false, "items": [] }
+  "horizon_days": 14,
+  "types": [
+    { "id": "umido", "name": "Umido", "icon": "mdi:food-apple", "color": "#8E5A2B",
+      "next": { "date": "2026-11-10", "days_until": 3 } }
   ],
-  "next": { "umido": "2026-11-10" }
+  "today_items": ["plastica"],
+  "days": [
+    { "date": "2026-11-07", "weekday": 5, "is_today": true, "items": ["plastica"] }
+  ],
+  "next_item": { "id": "plastica", "date": "2026-11-07", "days_until": 0 }
 }
 ```
-- `days`: sempre 7 elementi, lunedì → domenica (la card ruota in base a `week_start` se serve domenica).
-- `items` / `today_items` contengono id presenti in `types`, nell'ordine di `types`.
-- `next[id]`: prossima data (oggi incluso) o `null` se non calcolabile entro 400 giorni.
-- Il sensore si aggiorna a mezzanotte locale e al cambio opzioni.
+- `days`: **finestra mobile di `horizon_days` (default 14) giorni che parte da oggi** (il primo elemento è sempre oggi). La card in modalità settimana ne mostra i primi 7.
+- `items` / `today_items`: id presenti in `types`, nell'ordine di `types`.
+- `types[].next`: prossima occorrenza (oggi incluso) con `days_until`, oppure `null` se non calcolabile entro 400 giorni. L'ordine/etichette "Oggi", "Domani", "N giorni" sono resi dalla card (i18n it/en), non dal backend.
+- `next_item`: il tipo con `days_until` minore (a parità, primo in `types`), oppure `null` se nessun tipo ha occorrenze.
+- Si aggiorna a mezzanotte locale e al cambio opzioni.
 
 ## 3. Card `custom:garbage-view-card`
+Layout (riferimento: esempio di Luca, `docs/reference/example.jpeg`): 
+1. riga di tessere, una per tipo: icona, nome, badge con "Oggi" / "Domani" / "N giorni" e data breve (es. "gio 12/11"); la tessera col prossimo ritiro (o quelle di oggi) è evidenziata con bordo/alone, più tessere possono essere evidenziate insieme;
+2. sotto, striscia di giorni (`days`): sigla del giorno sopra, numero sotto; oggi con contorno, i giorni con ritiro riempiti col colore del tipo (più tipi: segmenti/puntini);
+3. in fondo una barra riepilogo "Prossimo: **Plastica** · sab 7/11 · oggi" da `next_item`.
 ```yaml
 type: custom:garbage-view-card
 entity: sensor.garbage_view_schedule   # obbligatorio
 title: Raccolta differenziata           # opzionale
 style: apple                            # apple | homekit
-week_start: monday                      # monday | sunday
-show_week: true
+days: 14                                # 7 | 14 (quanti giorni mostrare nella striscia)
+show_summary: true                      # barra "Prossimo"
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # solo --gv-*
 ```
 Variabili CSS pubbliche: `--gv-font`, `--gv-bg`, `--gv-text`, `--gv-text-secondary`, `--gv-tile-bg`, `--gv-tile-size`, `--gv-radius`, `--gv-gap`, `--gv-accent`, `--gv-shadow`, `--gv-anim-duration`.
-Risorsa servita da `/garbage_view/garbage-view-card.js`.
+Risorsa servita da `/garbage_view/garbage-view-card.js`. Dark mode automatica.
 
 ## 4. Servizio / calendario
 `calendar.garbage_view`: un evento "tutto il giorno" per ogni tipo e data, `summary` = `name`, `uid` = `<id>-<date>`.
