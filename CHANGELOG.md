@@ -4,12 +4,22 @@ Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/). / Fo
 
 ## [0.2.2] - 2026-11-07
 
-### Cambiato / Changed
-- **Le tessere riempiono tutta la larghezza della card**: si allargano in modo uniforme con una larghezza minima e, se non ci stanno, vanno a capo con **righe bilanciate** (5 tessere → 3 + 2 invece di 4 + 1; 7 → 3 + 2 + 2). Ogni riga arriva fino ai bordi, quindi non resta più spazio vuoto accanto a una tessera sola. Stile Apple/HomeKit, animazioni, tema chiaro/scuro e calendario espandibile non cambiano. / Tiles stretch evenly to fill the card width (with a minimum) and wrap into balanced rows; every row spans the full width, so a lone tile no longer leaves empty space.
-
 ### Novità / Added
+- **Orario di ritiro per tipo**: ogni tipo ha «Ritiro: al mattino / alla sera» (default mattina, nell'options flow, it/en). / Per-type pickup time (morning/evening).
+- **La card si accende al momento giusto**: ritiro del mattino → acceso dalla sera prima (da `put_out_from`, default 18:00) fino a mezzogiorno del ritiro; ritiro serale → acceso tutto il giorno del ritiro; altrimenti tenue. Vale per le tessere e per la barra «Prossimo». Mattina/sera compaiono nella riga della data e nella barra. / Tiles and the «Next» bar light up only when it is time to put the bin out.
+- **Promemoria che seguono il ritiro**: mattina → la sera prima (`evening_time`, default 20:00, elenco di domani); sera → il giorno stesso (`time`, default 07:30, elenco di oggi). Nuovo campo «Evidenzia dalle» (`put_out_from`). Il sensore si aggiorna anche alle 12:00 e all'ora `put_out_from`.
+- Sensore (additivo, `schema_version` resta 1): `types[].pickup`, `types[].due_now`, `due_items`, `put_out_from`, `next_item.pickup`.
 - Opzione `tile_min_width` (px, 60–240; vuoto = automatica, come prima: 76 Apple / 88 HomeKit), anche nell'editor visuale, e variabile CSS `--gv-tile-min-width`. / New `tile_min_width` option (also in the visual editor) and `--gv-tile-min-width` CSS variable.
 - Test vitest e Playwright con 1–8 tessere a larghezze strette e larghe; nuovi screenshot. / Tests for 1–8 tiles at narrow/wide widths; new screenshots.
+
+### Cambiato / Changed
+- Rimosso l'interruttore `evening_before`: il promemoria serale è sempre attivo per i tipi del mattino (con «non inviare se non c'è nulla» non disturba se non serve). Il vecchio valore salvato viene ignorato e scartato al prossimo salvataggio.
+- Nessun doppio invio dopo un riavvio (stessa dedup per `today`/`tomorrow`).
+- **Le tessere riempiono tutta la larghezza della card**: si allargano in modo uniforme con una larghezza minima e, se non ci stanno, vanno a capo con **righe bilanciate** (5 tessere → 3 + 2 invece di 4 + 1; 7 → 3 + 2 + 2). Ogni riga arriva fino ai bordi, quindi non resta più spazio vuoto accanto a una tessera sola. Stile Apple/HomeKit, animazioni, tema chiaro/scuro e calendario espandibile non cambiano. / Tiles stretch evenly to fill the card width (with a minimum) and wrap into balanced rows; every row spans the full width, so a lone tile no longer leaves empty space.
+
+### Compatibilità / Compatibility
+- I tipi salvati senza `pickup` valgono «mattina»; con un backend più vecchio la card mantiene il vecchio comportamento (evidenzia i ritiri di oggi/prossimo).
+- **Da rivedere dopo l'aggiornamento**: chi riceveva il promemoria del mattino per i rifiuti di oggi ora riceve, per quei tipi (default «mattina»), l'avviso la sera prima; per riavere l'avviso al mattino imposta il tipo su «alla sera».
 
 ## [0.2.1] - 2026-11-07
 

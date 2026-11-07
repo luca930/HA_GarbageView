@@ -18,14 +18,17 @@ from custom_components.garbage_view.const import CONF_NOTIFICATIONS, DOMAIN
 from custom_components.garbage_view.notifier import load_texts, render
 from custom_components.garbage_view.validation import ValidationError, validate_notifications
 
-from .test_integration import TYPES, setup
+from .test_integration import TYPES as BASE_TYPES, setup
+
+# Plastica (sabato) si ritira la sera: promemoria il giorno stesso. Gli altri al mattino: sera prima.
+TYPES = [{**t, "pickup": "evening"} if t["id"] == "plastica" else t for t in BASE_TYPES]
 
 NOTIFY = {
     "enabled": True,
     "targets": ["mobile_app_pixel", "mobile_app_iphone"],
     "time": "07:30:00",
-    "evening_before": True,
     "evening_time": "20:00:00",
+    "put_out_from": "18:00:00",
     "skip_if_empty": True,
     "title_template": "",
     "message_template": "",
@@ -226,8 +229,8 @@ async def test_options_flow_notifications(hass, calls) -> None:
     r = await hass.config_entries.options.async_configure(fid, {"next_step_id": "notifications"})
     assert r["step_id"] == "notifications"
     # nessun dispositivo scelto con notifiche attive → errore
-    bad = {"enabled": True, "targets": [], "time": "07:30:00", "evening_before": False,
-           "evening_time": "20:00:00", "skip_if_empty": True}
+    bad = {"enabled": True, "targets": [], "time": "07:30:00",
+           "evening_time": "20:00:00", "put_out_from": "18:00:00", "skip_if_empty": True}
     r = await hass.config_entries.options.async_configure(fid, bad)
     assert r["errors"] == {"targets": "no_targets"}
     r = await hass.config_entries.options.async_configure(fid, {**bad, "targets": ["mobile_app_pixel"]})
@@ -237,3 +240,64 @@ async def test_options_flow_notifications(hass, calls) -> None:
     saved = r["data"][CONF_NOTIFICATIONS]
     assert saved["targets"] == ["mobile_app_pixel"] and saved["enabled"] is True
     assert r["data"]["types"] == TYPES
+
+
+# ---- orario di ritiro (0.2.2) -------------------------------------------------------
+async def test_morning_pickup_not_notified_on_the_day(hass, calls, freezer) -> None:
+    """Carta (lunedì, mattina) NON genera il promemoria delle 07:30 del lunedì."""
+    freezer.move_to(tz_dt(2026, 11, 9, 6, 0))
+    await setup_n(hass)
+    await tick(hass, freezer, tz_dt(2026, 11, 9, 7, 30, 1))
+    assert calls == []
+
+
+async def test_evening_pickup_not_notified_the_evening_before(hass, calls, freezer) -> None:
+    """Plastica (sabato, sera) NON compare nel promemoria delle 20:00 di venerdì."""
+    freezer.move_to(tz_dt(2026, 11, 6, 6, 0))
+    await setup_n(hass)
+    await tick(hass, freezer, tz_dt(2026, 11, 6, 20, 0, 1))
+    assert calls == []
+
+
+async def test_mixed_day_lists_only_matching_types(hass, calls, freezer) -> None:
+    types = [
+        {**TYPES[1], "id": "a", "name": "Sera", "pickup": "evening"},   # sabato sera
+        {**TYPES[1], "id": "b", "name": "Mattina", "pickup": "morning"},  # sabato mattina
+    ]
+    freezer.move_to(tz_dt(2026, 11, 6, 6, 0))
+    await setup_n(hass, types=types)
+    await tick(hass, freezer, tz_dt(2026, 11, 6, 20, 0, 1))  # venerdì sera -> solo "Mattina"
+    assert calls[0].data["message"] == "Tomorrow put out: Mattina."
+    calls.clear()
+    await tick(hass, freezer, tz_dt(2026, 11, 7, 7, 30, 1))  # sabato -> solo "Sera"
+    assert calls[0].data["message"] == "Today put out: Sera."
+
+
+async def test_evening_reminder_no_duplicate_after_restart(hass, calls, freezer) -> None:
+    freezer.move_to(tz_dt(2026, 11, 8, 19, 0))  # domenica: domani lunedì Carta (mattina)
+    entry = await setup_n(hass)
+    await tick(hass, freezer, tz_dt(2026, 11, 8, 20, 0, 1))
+    assert len(calls) == 2
+    freezer.move_to(tz_dt(2026, 11, 8, 20, 10))
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert len(calls) == 2
+
+
+async def test_legacy_options_still_load(hass, calls, freezer) -> None:
+    """Opzioni 0.2.0/0.2.1: chiave `evening_before` ignorata, tipi senza `pickup` = mattina."""
+    legacy = {**NOTIFY, "evening_before": False}
+    legacy.pop("put_out_from")
+    old_types = [{k: v for k, v in t.items() if k != "pickup"} for t in TYPES]
+    freezer.move_to(tz_dt(2026, 11, 8, 19, 0))
+    await setup_n(hass, legacy, old_types)
+    await tick(hass, freezer, tz_dt(2026, 11, 8, 20, 0, 1))
+    assert calls and calls[0].data["message"] == "Tomorrow put out: Carta."
+
+
+def test_validate_drops_old_evening_before_key() -> None:
+    out = validate_notifications({"evening_before": True, "evening_time": "21:00"})
+    assert "evening_before" not in out
+    assert out["evening_time"] == "21:00:00" and out["put_out_from"] == "18:00:00"
+    with pytest.raises(ValidationError):
+        validate_notifications({"put_out_from": "99:00"})

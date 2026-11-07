@@ -30,6 +30,8 @@ const STRINGS = {
     tomorrow: "Domani",
     in_days: (n) => `${n} giorni`,
     next_label: "Prossimo",
+    pickup_morning: "mattina",
+    pickup_evening: "sera",
     nothing_next: "Nessun ritiro in programma",
     nothing_today: "Niente da buttare oggi",
     out_today: (n) => (n === 1 ? "Oggi si butta 1 tipo" : `Oggi si buttano ${n} tipi`),
@@ -55,6 +57,8 @@ const STRINGS = {
     tomorrow: "Tomorrow",
     in_days: (n) => `${n} days`,
     next_label: "Next",
+    pickup_morning: "morning",
+    pickup_evening: "evening",
     nothing_next: "No collection scheduled",
     nothing_today: "Nothing to put out today",
     out_today: (n) => (n === 1 ? "1 type to put out today" : `${n} types to put out today`),
@@ -333,6 +337,9 @@ const STYLES = `
   .summary-bar .icon { color: var(--gv-accent); --mdc-icon-size: 26px; font-size: 1.3rem; font-weight: 700; display: flex; }
   .summary-bar .txt { color: var(--gv-text-secondary); }
   .summary-bar strong { color: var(--gv-text); }
+  /* Con il sensore >= 0.2.2: spenta finché non è ora di mettere fuori, poi accesa */
+  .summary-bar.muted .icon { color: var(--gv-text-secondary); opacity: .7; }
+  .summary-bar.due { box-shadow: inset 0 0 0 2px var(--gv-accent); }
 
   .message { padding: 16px; color: var(--gv-text-secondary); font-size: .9rem; }
 
@@ -679,12 +686,16 @@ class GarbageViewCard extends HTMLElement {
     if (!types.length) return this._showMessage(t.no_types);
     const byId = new Map(types.map((x) => [x.id, x]));
 
-    // Quali tessere evidenziare: quelle di oggi; se non ce ne sono, quelle
-    // con il prossimo ritiro (stessa distanza di next_item).
+    // Quali tessere evidenziare. Con un backend >= 0.2.2 decide il sensore (`due_now`):
+    // ritiro del mattino -> acceso dalla sera prima, ritiro serale -> acceso il giorno stesso.
+    // Con un backend più vecchio: quelle di oggi o, se non ce ne sono, il prossimo ritiro.
+    const dueMode = types.some((x) => typeof x.due_now === "boolean");
     const daysUntil = (x) => (x.next && Number.isInteger(x.next.days_until) ? x.next.days_until : null);
     const todays = types.filter((x) => daysUntil(x) === 0);
     const nextDist = a.next_item && Number.isInteger(a.next_item.days_until) ? a.next_item.days_until : null;
-    const highlighted = new Set((todays.length ? todays : types.filter((x) => nextDist !== null && daysUntil(x) === nextDist)).map((x) => x.id));
+    const highlighted = new Set((dueMode
+      ? types.filter((x) => x.due_now === true)
+      : todays.length ? todays : types.filter((x) => nextDist !== null && daysUntil(x) === nextDist)).map((x) => x.id));
 
     const frag = document.createDocumentFragment();
 
@@ -696,7 +707,7 @@ class GarbageViewCard extends HTMLElement {
 
     const grid = el("div", "types");
     grid.setAttribute("role", "list");
-    types.forEach((type, i) => grid.append(this._buildTile(type, i, highlighted.has(type.id), t)));
+    types.forEach((type, i) => grid.append(this._buildTile(type, i, highlighted.has(type.id), t, dueMode)));
     frag.append(grid);
 
     // Striscia e calendario stanno nello stesso punto: espandendo, la striscia
@@ -934,22 +945,27 @@ class GarbageViewCard extends HTMLElement {
       : `${a.getDate()} ${mon(a)} – ${b.getDate()} ${mon(b)} ${b.getFullYear()}`;
   }
 
-  _buildTile(type, index, highlighted, t) {
+  _pickupLabel(item, t) {
+    return item && item.pickup === "evening" ? t.pickup_evening : item && item.pickup === "morning" ? t.pickup_morning : "";
+  }
+
+  _buildTile(type, index, highlighted, t, dueMode = false) {
     const dist = type.next && Number.isInteger(type.next.days_until) ? type.next.days_until : null;
     const nextDate = type.next ? parseDate(type.next.date) : null;
-    const tile = el("div", "tile" + (dist === 0 ? " today" : highlighted ? " next" : ""));
+    const tile = el("div", "tile" + (dueMode ? (highlighted ? " today" : "") : dist === 0 ? " today" : highlighted ? " next" : ""));
     tile.setAttribute("role", "listitem");
     tile.style.setProperty("--i", String(index)); // ritardo animazione a cascata
 
     tile.append(this._icon(type), el("div", "name", String(type.name || "").slice(0, 40)));
     if (dist !== null && nextDate) {
       tile.append(el("div", "badge", this._relative(dist, t)));
-      if (dist !== 0) tile.append(el("div", "when", this._shortDate(nextDate)));
+      const pickup = this._pickupLabel(type, t);
+      if (dist !== 0) tile.append(el("div", "when", pickup ? `${this._shortDate(nextDate)} · ${pickup}` : this._shortDate(nextDate)));
     }
 
     // Etichetta per screen reader (il testo visibile è frammentato).
     const label = [type.name];
-    if (dist !== null && nextDate) label.push(dist === 0 ? t.today : `${t.next_label}: ${this._relative(dist, t)}, ${this._longDate(nextDate)}`);
+    if (dist !== null && nextDate) label.push(dist === 0 ? t.today : `${t.next_label}: ${this._relative(dist, t)}, ${this._longDate(nextDate)}${this._pickupLabel(type, t) ? ", " + this._pickupLabel(type, t) : ""}`);
     tile.setAttribute("aria-label", label.join(", "));
     return tile;
   }
@@ -1021,13 +1037,16 @@ class GarbageViewCard extends HTMLElement {
     bar.setAttribute("role", "status");
     const type = nextItem && byId.get(nextItem.id);
     const date = nextItem && parseDate(nextItem.date);
+    // Il prossimo è "acceso" solo se è il momento di metterlo fuori (due_now del suo tipo).
+    if (type && typeof type.due_now === "boolean") bar.classList.add(type.due_now ? "due" : "muted");
     if (!type || !date || !Number.isInteger(nextItem.days_until)) {
       bar.append(el("span", "txt", t.nothing_next));
       return bar;
     }
     const txt = el("span", "txt");
     txt.append(`${t.next_label}: `, el("strong", null, String(type.name).slice(0, 40)),
-      ` · ${this._shortDate(date)} · ${this._relative(nextItem.days_until, t).toLowerCase()}`);
+      ` · ${this._shortDate(date)} · ${this._relative(nextItem.days_until, t).toLowerCase()}` +
+      (this._pickupLabel(nextItem, t) ? ` · ${this._pickupLabel(nextItem, t)}` : ""));
     bar.append(this._icon(type), txt);
     return bar;
   }

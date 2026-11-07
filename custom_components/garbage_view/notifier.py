@@ -1,5 +1,7 @@
 """Notifiche push programmate verso l'app mobile di Home Assistant.
 
+* Il promemoria segue l'orario di ritiro del tipo: ritiro al mattino -> la sera prima
+  (``evening_time``), ritiro serale -> il giorno stesso (``time``).
 * Nessun polling: un listener ``async_track_time_change`` per orario.
 * Fuso orario di Home Assistant (anche con ora legale).
 * Nessun doppio invio: l'ultimo giorno di invio è salvato su disco.
@@ -28,7 +30,6 @@ from .const import (
     DEFAULT_NOTIFICATIONS,
     DOMAIN,
     N_ENABLED,
-    N_EVENING,
     N_EVENING_TIME,
     N_MESSAGE,
     N_SKIP_EMPTY,
@@ -37,13 +38,16 @@ from .const import (
     N_TITLE,
     NOTIFY_TARGET_PREFIX,
 )
-from .recurrence import occurs_on
+from .recurrence import PICKUP_EVENING, PICKUP_MORNING, occurs_on, pickup_of
 
 _LOGGER = logging.getLogger(__name__)
 
-KIND_TODAY = "today"        # al mattino: cosa portare fuori oggi
-KIND_TOMORROW = "tomorrow"  # la sera prima: cosa portare fuori domani
+KIND_TODAY = "today"        # il giorno stesso: ritiri serali da portare fuori oggi
+KIND_TOMORROW = "tomorrow"  # la sera prima: ritiri del mattino di domani
 KINDS = (KIND_TODAY, KIND_TOMORROW)
+# Ogni tipo notifica solo nel suo momento: mattina -> sera prima, sera -> giorno stesso.
+_PICKUP_FOR_KIND = {KIND_TODAY: PICKUP_EVENING, KIND_TOMORROW: PICKUP_MORNING}
+_TIME_KEYS = ((KIND_TODAY, N_TIME), (KIND_TOMORROW, N_EVENING_TIME))
 
 _TEXTS_DIR = Path(__file__).parent / "notification_texts"
 _FALLBACK_LANG = "en"
@@ -150,12 +154,7 @@ class Notifier:
         opts = self.options
         if not opts[N_ENABLED] or not opts[N_TARGETS]:
             return
-        for kind, enabled, key in (
-            (KIND_TODAY, True, N_TIME),
-            (KIND_TOMORROW, opts[N_EVENING], N_EVENING_TIME),
-        ):
-            if not enabled:
-                continue
+        for kind, key in _TIME_KEYS:
             t = dt_util.parse_time(opts[key])
             if t is None:
                 _LOGGER.warning("Orario notifica non valido: %s", opts[key])
@@ -183,24 +182,25 @@ class Notifier:
         if not opts[N_ENABLED] or not opts[N_TARGETS]:
             return
         now = dt_util.now()
-        for kind, enabled, key in (
-            (KIND_TODAY, True, N_TIME),
-            (KIND_TOMORROW, opts[N_EVENING], N_EVENING_TIME),
-        ):
+        for kind, key in _TIME_KEYS:
             t = dt_util.parse_time(opts[key])
-            if not enabled or t is None:
+            if t is None:
                 continue
             due = datetime.combine(now.date(), t, tzinfo=now.tzinfo)
             if due <= now <= due + timedelta(minutes=CATCH_UP_MINUTES):
                 await self.async_send(kind)
 
     # ---- invio ----------------------------------------------------------------
-    def _names_for(self, day: date) -> list[str]:
+    def _names_for(self, day: date, pickup: str) -> list[str]:
         types = self.entry.options.get("types", [])
         return [
             t["name"]
             for t in types
-            if isinstance(t, dict) and "name" in t and "rule" in t and occurs_on(t["rule"], day)
+            if isinstance(t, dict)
+            and "name" in t
+            and "rule" in t
+            and pickup_of(t) == pickup
+            and occurs_on(t["rule"], day)
         ]
 
     async def _async_texts(self) -> dict[str, str]:
@@ -221,7 +221,7 @@ class Notifier:
             if not force and self._sent.get(kind) == today.isoformat():
                 return False
             day = today if kind == KIND_TODAY else today + timedelta(days=1)
-            names = self._names_for(day)
+            names = self._names_for(day, _PICKUP_FOR_KIND[kind])
             if not names and opts[N_SKIP_EMPTY] and not force:
                 return False
             texts = await self._async_texts()

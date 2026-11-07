@@ -36,10 +36,12 @@
         "data": {
           "name": "Nome",
           "icon": "Icona",
-          "rule_type": "Ricorrenza"
+          "rule_type": "Ricorrenza",
+          "pickup": "Ritiro"
         },
         "data_description": {
-          "icon": "Cerca nell'elenco oppure scrivi qualsiasi icona Material Design, es. mdi:food-apple (le trovi su pictogrammers.com/library/mdi)"
+          "icon": "Cerca nell'elenco oppure scrivi qualsiasi icona Material Design, es. mdi:food-apple (le trovi su pictogrammers.com/library/mdi)",
+          "pickup": "Quando passano. Mattina: promemoria ed evidenza partono la sera prima. Sera: partono lo stesso giorno."
         }
       },
       "rule_weekly": {
@@ -89,13 +91,13 @@
       },
       "notifications": {
         "title": "Notifiche sul telefono",
-        "description": "Invia una notifica push all'app di Home Assistant con ciò che c'è da portare fuori. Il testo segue la lingua di Home Assistant. Nei testi personalizzati usa {placeholders}.",
+        "description": "Invia una notifica all'app di Home Assistant con ciò che c'è da portare fuori: la sera prima per i tipi ritirati al mattino, nello stesso giorno per quelli ritirati alla sera. Il testo segue la lingua di Home Assistant. Usa i {placeholders} nei testi personalizzati.",
         "data": {
           "enabled": "Abilita notifiche",
           "targets": "Dispositivi",
-          "time": "Orario (stesso giorno)",
-          "evening_before": "Ricorda anche la sera prima",
-          "evening_time": "Orario della sera prima",
+          "evening_time": "Promemoria serale (sera prima)",
+          "time": "Promemoria del giorno",
+          "put_out_from": "Evidenzia dalle",
           "skip_if_empty": "Non inviare se non c'è nulla",
           "title_template": "Titolo personalizzato",
           "message_template": "Messaggio personalizzato"
@@ -103,7 +105,10 @@
         "data_description": {
           "targets": "Dispositivi con app mobile (notify.mobile_app_*)",
           "title_template": "Vuoto = testo predefinito",
-          "message_template": "Vuoto = testo predefinito"
+          "message_template": "Vuoto = testo predefinito",
+          "evening_time": "Per i tipi ritirati al mattino: orario del promemoria la sera prima",
+          "time": "Per i tipi ritirati alla sera: orario del promemoria nel giorno stesso",
+          "put_out_from": "Da quest'ora la card accende i tipi ritirati domani mattina"
         }
       }
     },
@@ -121,7 +126,8 @@
       "invalid_time": "Inserisci un orario valido.",
       "invalid_targets": "Scegli dispositivi mobile validi.",
       "no_targets": "Scegli almeno un dispositivo.",
-      "invalid_template": "Massimo 200 caratteri; usa solo i segnaposto elencati."
+      "invalid_template": "Massimo 200 caratteri; usa solo i segnaposto elencati.",
+      "invalid_pickup": "Scegli mattina o sera."
     },
     "abort": {
       "max_types": "Hai raggiunto il massimo di 20 tipi di rifiuto."
@@ -177,6 +183,12 @@
         "textiles": "Tessili",
         "batteries": "Pile",
         "custom": "Personalizzato…"
+      }
+    },
+    "pickup": {
+      "options": {
+        "morning": "Al mattino",
+        "evening": "Alla sera"
       }
     }
   },

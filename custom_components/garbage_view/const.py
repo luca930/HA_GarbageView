@@ -15,13 +15,19 @@ MAX_TYPES = 20
 NAME_MAX_LEN = 40
 DEFAULT_ICON = "mdi:trash-can-outline"
 
+# ---- Orario di ritiro (CONTRACT.md §1) ----
+PICKUP_MORNING = "morning"
+PICKUP_EVENING = "evening"
+PICKUPS = (PICKUP_MORNING, PICKUP_EVENING)
+DEFAULT_PICKUP = PICKUP_MORNING
+
 # ---- Notifiche (CONTRACT.md §3) ----
 CONF_NOTIFICATIONS = "notifications"
 N_ENABLED = "enabled"
 N_TARGETS = "targets"
 N_TIME = "time"
-N_EVENING = "evening_before"
 N_EVENING_TIME = "evening_time"
+N_PUT_OUT_FROM = "put_out_from"
 N_SKIP_EMPTY = "skip_if_empty"
 N_TITLE = "title_template"
 N_MESSAGE = "message_template"
@@ -34,8 +40,8 @@ DEFAULT_NOTIFICATIONS = {
     N_ENABLED: False,
     N_TARGETS: [],
     N_TIME: "07:30:00",
-    N_EVENING: False,
     N_EVENING_TIME: "20:00:00",
+    N_PUT_OUT_FROM: "18:00:00",
     N_SKIP_EMPTY: True,
     N_TITLE: "",
     N_MESSAGE: "",

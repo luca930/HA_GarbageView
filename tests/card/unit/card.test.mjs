@@ -13,6 +13,8 @@ const setUntil = (state, id, n) => {
   const t = state.attributes.types.find((x) => x.id === id);
   t.next = n === null ? null : { date: "2026-11-07", days_until: n };
 };
+// Backend < 0.2.2: nessun `due_now` sui tipi (la card ripiega sul vecchio comportamento).
+const legacy = (s) => s.attributes.types.forEach((t) => { delete t.due_now; delete t.pickup; });
 const tileOf = (card, name) => qa(card, ".tile").find((t) => t.querySelector(".name").textContent === name);
 
 describe("rendering base", () => {
@@ -30,7 +32,7 @@ describe("rendering base", () => {
   });
 
   it("evidenzia più rifiuti nello stesso giorno", () => {
-    const state = makeState((s) => setUntil(s, "umido", 0));
+    const state = makeState((s) => { legacy(s); setUntil(s, "umido", 0); });
     const card = mountCard(state);
     const names = qa(card, ".tile.today .name").map((n) => n.textContent);
     expect(names).toEqual(["Umido", "Plastica"]);
@@ -38,6 +40,7 @@ describe("rendering base", () => {
 
   it("se oggi non c'è nulla evidenzia il prossimo ritiro", () => {
     const state = makeState((s) => {
+      legacy(s);
       setUntil(s, "plastica", 7);
       s.attributes.next_item = { id: "carta", date: "2026-11-09", days_until: 2 };
     });
@@ -51,6 +54,69 @@ describe("rendering base", () => {
   it("mostra il titolo solo se configurato", () => {
     expect(q(mountCard(), ".title")).toBeNull();
     expect(q(mountCard(makeState(), { title: "Raccolta" }), ".title").textContent).toBe("Raccolta");
+  });
+});
+
+describe("orario di ritiro: evidenza guidata da due_now", () => {
+  const setDue = (s, ids) => s.attributes.types.forEach((t) => (t.due_now = ids.includes(t.id)));
+  const names = (card, sel) => qa(card, sel).map((n) => n.querySelector(".name").textContent);
+
+  it("si accende solo il tipo con due_now (ritiro serale di oggi)", () => {
+    const card = mountCard(makeState((s) => setDue(s, ["plastica"])));
+    expect(names(card, ".tile.today")).toEqual(["Plastica"]);
+    expect(qa(card, ".tile.next")).toHaveLength(0);
+  });
+
+  it("ritiro di oggi già passato (due_now false): resta spenta, senza animazione", () => {
+    const card = mountCard(makeState((s) => setDue(s, [])));
+    expect(qa(card, ".tile.today")).toHaveLength(0);
+    expect(qa(card, ".tile.next")).toHaveLength(0);
+    expect(qa(card, ".tile")).toHaveLength(4);
+  });
+
+  it("ritiro di domani mattina acceso dalla sera prima (due_now con days_until = 1)", () => {
+    const card = mountCard(makeState((s) => { setUntil(s, "umido", 1); setDue(s, ["umido"]); }));
+    expect(names(card, ".tile.today")).toEqual(["Umido"]);
+    expect(tileOf(card, "Umido").querySelector(".badge").textContent).toBe("Domani");
+  });
+
+  it("più tipi accesi insieme", () => {
+    const card = mountCard(makeState((s) => setDue(s, ["umido", "carta"])));
+    expect(names(card, ".tile.today")).toEqual(["Umido", "Carta"]);
+  });
+
+  it("la barra «Prossimo» segue il tipo: accesa se due_now, spenta altrimenti", () => {
+    const on = q(mountCard(makeState((s) => setDue(s, ["plastica"]))), ".summary-bar");
+    expect(on.classList.contains("due")).toBe(true);
+    expect(on.classList.contains("muted")).toBe(false);
+    document.body.replaceChildren();
+    const off = q(mountCard(makeState((s) => setDue(s, []))), ".summary-bar");
+    expect(off.classList.contains("muted")).toBe(true);
+    expect(off.classList.contains("due")).toBe(false);
+  });
+
+  it("mostra il momento del ritiro (mattina/sera) nella barra e nell'aria-label", () => {
+    const state = makeState((s) => { setDue(s, []); s.attributes.next_item.pickup = "evening"; });
+    const card = mountCard(state);
+    expect(q(card, ".summary-bar").textContent).toContain("sera");
+    expect(tileOf(card, "Umido").getAttribute("aria-label")).toContain("mattina");
+    expect(tileOf(card, "Umido").querySelector(".when").textContent).toContain("mattina");
+  });
+
+  it("backend vecchio (nessun due_now): comportamento precedente, barra senza stato", () => {
+    const card = mountCard(makeState(legacy));
+    expect(names(card, ".tile.today")).toEqual(["Plastica"]);
+    const bar = q(card, ".summary-bar");
+    expect(bar.classList.contains("due") || bar.classList.contains("muted")).toBe(false);
+  });
+
+  it("si aggiorna quando il sensore cambia due_now", () => {
+    const state = makeState((s) => setDue(s, []));
+    const card = mountCard(state);
+    expect(qa(card, ".tile.today")).toHaveLength(0);
+    const next = makeState((s) => setDue(s, ["vetro"]));
+    card.hass = makeHass(next);
+    expect(names(card, ".tile.today")).toEqual(["Vetro"]);
   });
 });
 

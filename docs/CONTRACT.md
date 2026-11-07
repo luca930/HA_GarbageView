@@ -10,11 +10,14 @@ Tutti i task rispettano questo contratto. Modifiche solo con aumento di `schema_
       "id": "umido",                 // slug [a-z0-9_]{1,32}, univoco
       "name": "Umido",               // 1..40 caratteri
       "icon": "mdi:food-apple",      // ^mdi:[a-z0-9-]+$
-      "rule": { "type": "weekly", "weekdays": [1, 4] }
+      "rule": { "type": "weekly", "weekdays": [1, 4] },
+      "pickup": "morning"            // "morning" (default se assente) | "evening"
     }
   ]
 }
 ```
+`pickup`: quando passano a ritirare. `morning` → la card si accende e il promemoria parte la sera prima; `evening` → il giorno stesso (vedi §2 `due_now` e §3 notifiche).
+
 `weekday`: 0 = lunedì … 6 = domenica (come `date.weekday()`).
 
 Regole (`rule`):
@@ -40,12 +43,17 @@ Regole (`rule`):
       "next": { "date": "2026-11-10", "days_until": 3 } }
   ],
   "today_items": ["plastica"],
+  "due_items": ["plastica"],
+  "put_out_from": "18:00",
   "days": [
     { "date": "2026-11-07", "weekday": 5, "is_today": true, "items": ["plastica"] }
   ],
-  "next_item": { "id": "plastica", "date": "2026-11-07", "days_until": 0 }
+  "next_item": { "id": "plastica", "date": "2026-11-07", "days_until": 0, "pickup": "evening" }
 }
 ```
+- `types[].pickup` (additivo): `morning` | `evening` (assente nei dati vecchi = `morning`). `types[].due_now` (bool): è il momento di mettere fuori questo tipo. `due_items`: gli id con `due_now`. `put_out_from` ("HH:MM", default "18:00", da `options.notifications.put_out_from`): ora da cui si accendono i ritiri del giorno dopo.
+- Regola di `due_now` (ora locale): `evening` → vero tutto il giorno del ritiro; `morning` → vero dalla sera prima da `put_out_from` e fino alle 12:00 del giorno del ritiro. Il sensore si ricalcola a mezzanotte, alle 12:00, a `put_out_from` e al cambio opzioni.
+- La card, se i tipi hanno `due_now`, accende (classe `.today`) solo quelle tessere e colora la barra «Prossimo» (`.due` / `.muted` secondo il tipo di `next_item`); senza `due_now` (backend < 0.2.2) evidenzia come prima i ritiri di oggi o il prossimo.
 - `days`: **finestra mobile di `horizon_days` (default 14) giorni che parte da oggi** (il primo elemento è sempre oggi). La card in modalità settimana ne mostra i primi 7.
 - `types[].rule` (aggiunto, retrocompatibile: `schema_version` resta 1): la regola di ricorrenza del §1, copiata così com'è. Serve al **calendario grande** della card, che calcola nel browser (stesso algoritmo di `recurrence.py`, verificato da `tests/fixtures/occurrences.json`) i giorni di qualsiasi settimana o mese, anche passati, senza che il sensore debba esportare decine di giorni (attributi piccoli, niente limite di 16 KB del recorder). Se manca (backend più vecchio) la card ripiega sui soli `days`.
 - `items` / `today_items`: id presenti in `types`, nell'ordine di `types`.
@@ -83,8 +91,9 @@ Fixture di riferimento: `tests/fixtures/schedule_example.json`.
 ## 3. Opzioni notifiche (`options["notifications"]`)
 ```json
 { "enabled": false, "targets": ["mobile_app_pixel"], "time": "07:30:00",
-  "evening_before": false, "evening_time": "20:00:00", "skip_if_empty": true,
+  "evening_time": "20:00:00", "put_out_from": "18:00:00", "skip_if_empty": true,
   "title_template": "", "message_template": "" }
 ```
+Il promemoria segue `types[].pickup`: `evening_time` → kind `tomorrow` con i tipi `morning` di domani (sera prima); `time` → kind `today` con i tipi `evening` di oggi. Entrambi sempre programmati (con `skip_if_empty` non inviano se vuoti). `evening_before` (≤ 0.2.1) è ignorato. `put_out_from` non riguarda le notifiche ma la card (§2).
 `targets`: servizi `notify.mobile_app_*` (max 10). Template: max 200 caratteri, solo `{items}`, `{count}`, `{when}`, `{date}`.
 Testi predefiniti in `notification_texts/<lingua>.json`. L'ultimo giorno di invio per tipo (`today`/`tomorrow`) è in `.storage/garbage_view.<entry_id>.notified`.

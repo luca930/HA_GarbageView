@@ -47,11 +47,21 @@ show_summary: true                     # barra «Prossimo»
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # opzionale
 ```
 
+### Orario di ritiro
+Ogni tipo di rifiuto ha un campo **Ritiro**: *Al mattino* (default) o *Alla sera*. Decide quando la card si accende e quando arriva il promemoria:
+
+| Ritiro | Card accesa | Promemoria |
+|---|---|---|
+| Al mattino | dalla sera prima (dalle **18:00**, impostabile in «Evidenzia dalle») fino a mezzogiorno del ritiro | la sera prima, alle 20:00 |
+| Alla sera | tutto il giorno del ritiro | il giorno stesso, alle 07:30 |
+
+Fuori da queste finestre le tessere restano spente (tenui), così «acceso» significa davvero «adesso porta fuori». Chi aggiorna dalla 0.2.1: i tipi già salvati diventano «Al mattino», la vecchia opzione «promemoria la sera prima» non serve più (il promemoria della sera prima parte per i tipi del mattino) e il promemoria del mattino ora riguarda solo i tipi ritirati la sera: rivedi gli orari in **Configura → Notifiche sul telefono**.
+
 ### Notifiche sul telefono
 Da **Configura → Notifiche sul telefono** puoi attivare una notifica push all'app mobile di Home Assistant con l'elenco di ciò che c'è da portare fuori.
 
 - **Dispositivi**: uno o più servizi `notify.mobile_app_*`.
-- **Orario**: la mattina, per i rifiuti di oggi. Opzionale: promemoria la **sera prima** (per domani).
+- **Quando ti avvisa dipende dal ritiro di ciascun tipo** (vedi «Orario di ritiro»): se passano **la mattina** il promemoria arriva **la sera prima** (all'orario «Promemoria serale», default 20:00) con l'elenco di domani; se passano **la sera** arriva **il giorno stesso** (all'orario «Promemoria del giorno», default 07:30) con l'elenco di oggi.
 - **Non inviare se non c'è nulla** (attivo di default).
 - **Lingua**: il testo segue la lingua di Home Assistant (italiano e inglese inclusi). Per aggiungerne una, copia `custom_components/garbage_view/notification_texts/en.json` come `<lingua>.json` e traduci.
 - **Testi personalizzati** (opzionali, max 200 caratteri) con i segnaposto `{items}`, `{count}`, `{when}`, `{date}`.
@@ -150,11 +160,21 @@ show_summary: true                     # "Next" bar
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # optional
 ```
 
+### Pickup time
+Each waste type has a **Collected** field: *In the morning* (default) or *In the evening*. It decides when the card lights up and when the reminder arrives:
+
+| Pickup | Card lit | Reminder |
+|---|---|---|
+| In the morning | from the evening before (from **18:00**, set with «Highlight from») until noon on collection day | the evening before, at 20:00 |
+| In the evening | all day on collection day | the same day, at 07:30 |
+
+Outside those windows tiles stay muted, so «lit» really means «put it out now». Upgrading from 0.2.1: saved types become «In the morning», the old «also remind the evening before» switch is gone (the evening-before reminder now fires for morning types) and the same-day reminder now only covers evening types: review the times in **Configure → Mobile notifications**.
+
 ### Mobile notifications
 From **Configure → Mobile notifications** you can enable a push notification to the Home Assistant mobile app listing what to put out.
 
 - **Devices**: one or more `notify.mobile_app_*` services.
-- **Time**: in the morning, for today's waste. Optional reminder the **evening before** (for tomorrow).
+- **When you are notified depends on each type's pickup** (see «Pickup time»): types collected **in the morning** are reminded **the evening before** (at «Evening-before reminder», default 20:00) with tomorrow's list; types collected **in the evening** are reminded **the same day** (at «Same-day reminder», default 07:30) with today's list.
 - **Skip when nothing is due** (on by default).
 - **Language**: the text follows the Home Assistant language (Italian and English included). To add one, copy `custom_components/garbage_view/notification_texts/en.json` to `<language>.json` and translate it.
 - **Custom texts** (optional, max 200 characters) with the placeholders `{items}`, `{count}`, `{when}`, `{date}`.
