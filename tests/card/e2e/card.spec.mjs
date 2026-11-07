@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const state = JSON.parse(readFileSync(join(here, "../../fixtures/schedule_example.json"), "utf8"));
-const harness = "file://" + join(here, "harness.html");
+const harness = pathToFileURL(join(here, "harness.html")).href;
 const shots = join(here, "../../../docs/screenshots");
 
 const base = { entity: "sensor.garbage_view_schedule", title: "Raccolta differenziata" };
