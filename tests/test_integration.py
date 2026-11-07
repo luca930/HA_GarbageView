@@ -102,3 +102,20 @@ async def test_calendar_range_is_capped(hass: HomeAssistant, saturday) -> None:
     start = datetime(2026, 1, 1, tzinfo=dt_util.get_default_time_zone())
     events = await entity.async_get_events(hass, start, start + timedelta(days=36500))
     assert events and events[-1].start < date(2026, 1, 1) + timedelta(days=733)
+
+
+async def test_calendar_end_at_local_midnight_is_exclusive(hass: HomeAssistant, saturday) -> None:
+    await setup(hass)
+    entity = hass.data["calendar"].get_entity("calendar.garbage_view")
+    tz = dt_util.get_default_time_zone()
+    # Venerdì 13 non deve comparire: l'intervallo termina a mezzanotte di venerdì 13.
+    events = await entity.async_get_events(
+        hass, datetime(2026, 11, 10, tzinfo=tz), datetime(2026, 11, 13, tzinfo=tz))
+    assert [e.uid for e in events] == ["umido-2026-11-10"]
+
+
+async def test_calendar_event_uses_coordinator_data(hass: HomeAssistant, saturday) -> None:
+    await setup(hass, [])
+    assert hass.states.get("calendar.garbage_view").state == "off"
+    entity = hass.data["calendar"].get_entity("calendar.garbage_view")
+    assert entity.event is None

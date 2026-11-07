@@ -15,7 +15,6 @@ from .recurrence import occurs_on
 
 # Protezione da richieste con intervalli enormi (costo O(tipi x giorni)).
 MAX_RANGE_DAYS = 732
-EVENT_LOOKAHEAD_DAYS = 400
 
 
 async def async_setup_entry(
@@ -55,12 +54,21 @@ class GarbageViewCalendar(CalendarEntity):
 
     @property
     def event(self) -> CalendarEvent | None:
-        """Prossimo evento (oggi incluso)."""
-        today = dt_util.now().date()
-        events = events_between(
-            self._coordinator.types, today, today + timedelta(days=EVENT_LOOKAHEAD_DAYS)
+        """Prossimo evento (oggi incluso), dal calcolo già fatto dal coordinator."""
+        data = self._coordinator.data or {}
+        nxt = data.get("next_item")
+        if not nxt:
+            return None
+        name = next((t["name"] for t in data["types"] if t["id"] == nxt["id"]), None)
+        if name is None:
+            return None
+        day = date.fromisoformat(nxt["date"])
+        return CalendarEvent(
+            start=day,
+            end=day + timedelta(days=1),
+            summary=name,
+            uid=f"{nxt['id']}-{nxt['date']}",
         )
-        return events[0] if events else None
 
     async def async_get_events(
         self, hass: HomeAssistant, start_date: datetime, end_date: datetime
@@ -68,7 +76,9 @@ class GarbageViewCalendar(CalendarEntity):
         local = dt_util.get_default_time_zone()
         start = start_date.astimezone(local).date()
         end = end_date.astimezone(local)
-        end_day = end.date() if end.time() == datetime.min.time() else end.date() + timedelta(days=1)
+        # end è escluso: se è esattamente a mezzanotte locale non include un giorno in più.
+        at_midnight = (end.hour, end.minute, end.second, end.microsecond) == (0, 0, 0, 0)
+        end_day = end.date() if at_midnight else end.date() + timedelta(days=1)
         return events_between(self._coordinator.types, start, end_day)
 
     async def async_added_to_hass(self) -> None:
