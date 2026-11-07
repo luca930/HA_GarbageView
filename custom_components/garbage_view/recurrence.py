@@ -1,15 +1,97 @@
-"""Logica di ricorrenza pura (task T1). Nessuna dipendenza da Home Assistant."""
+"""Logica di ricorrenza pura (task T1). Nessuna dipendenza da Home Assistant.
+
+Il modulo non importa nulla dal pacchetto, così può essere testato
+(e usato) senza Home Assistant installato.
+"""
 from __future__ import annotations
 
-from datetime import date
+import calendar
+from datetime import date, timedelta
 from typing import Any
+
+SCHEMA_VERSION = 1
+NEXT_LOOKAHEAD_DAYS = 400
+
+
+def _monday(day: date) -> date:
+    return day - timedelta(days=day.weekday())
+
+
+def _to_date(value: date | str) -> date:
+    return value if isinstance(value, date) else date.fromisoformat(value)
 
 
 def occurs_on(rule: dict[str, Any], day: date) -> bool:
-    """Ritorna True se la regola (CONTRACT.md §1) cade in `day`."""
-    raise NotImplementedError
+    """Ritorna True se la regola (CONTRACT.md §1) cade in `day`.
+
+    Una regola sconosciuta non cade mai (falso), così un dato
+    corrotto non rompe l'intero aggiornamento.
+    """
+    rtype = rule.get("type")
+
+    if rtype == "weekly":
+        return day.weekday() in rule["weekdays"]
+
+    if rtype == "every_n_weeks":
+        if day.weekday() not in rule["weekdays"]:
+            return False
+        weeks = (_monday(day) - _monday(_to_date(rule["anchor_date"]))).days // 7
+        return weeks % rule["interval"] == 0
+
+    if rtype == "monthly_nth_weekday":
+        if day.weekday() != rule["weekday"]:
+            return False
+        nth = rule["nth"]
+        if nth == -1:
+            return day.day + 7 > calendar.monthrange(day.year, day.month)[1]
+        return (day.day - 1) // 7 + 1 == nth
+
+    if rtype == "monthly_day":
+        last = calendar.monthrange(day.year, day.month)[1]
+        return day.day == min(rule["day"], last)
+
+    return False
+
+
+def next_occurrence(
+    rule: dict[str, Any], start: date, lookahead: int = NEXT_LOOKAHEAD_DAYS
+) -> date | None:
+    """Prima data >= `start` in cui la regola cade, entro `lookahead` giorni."""
+    for offset in range(lookahead + 1):
+        day = start + timedelta(days=offset)
+        if occurs_on(rule, day):
+            return day
+    return None
 
 
 def week_view(types: list[dict[str, Any]], today: date) -> dict[str, Any]:
     """Costruisce gli attributi del sensore (CONTRACT.md §2)."""
-    raise NotImplementedError
+    week_start = _monday(today)
+    days = []
+    for i in range(7):
+        day = week_start + timedelta(days=i)
+        days.append(
+            {
+                "date": day.isoformat(),
+                "weekday": day.weekday(),
+                "is_today": day == today,
+                "items": [t["id"] for t in types if occurs_on(t["rule"], day)],
+            }
+        )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "today": today.isoformat(),
+        "weekday": today.weekday(),
+        "week_start": week_start.isoformat(),
+        "types": [
+            {k: t[k] for k in ("id", "name", "icon", "color")} for t in types
+        ],
+        "today_items": next(d["items"] for d in days if d["is_today"]),
+        "days": days,
+        "next": {
+            t["id"]: (
+                n.isoformat() if (n := next_occurrence(t["rule"], today)) else None
+            )
+            for t in types
+        },
+    }
