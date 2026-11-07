@@ -10,6 +10,6 @@ def occurs_on(rule: dict[str, Any], day: date) -> bool:
     raise NotImplementedError
 
 
-def week_view(types: list[dict[str, Any]], today: date) -> dict[str, Any]:
+def build_view(types: list[dict[str, Any]], today: date) -> dict[str, Any]:
     """Costruisce gli attributi del sensore (CONTRACT.md §2)."""
     raise NotImplementedError

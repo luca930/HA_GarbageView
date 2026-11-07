@@ -11,4 +11,4 @@ Dipendenza comune: `docs/CONTRACT.md` (già fissato). Modello consigliato per i 
 | T5 | Editor visuale della card + test vitest/Playwright + screenshot | T4 | `frontend/`, `tests/card/` |
 | T6 | CI (pytest, hassfest, HACS action), README it/en, release | T1–T4 | `.github/workflows/`, `README.md` |
 
-Parallelizzabili subito: **T1, T2, T4** (T3 parte appena T1 espone `occurs_on`/`week_view`, già stub-pati nello scaffold). Poi T3, T5, quindi T6.
+Parallelizzabili subito: **T1, T2, T4** (T3 parte appena T1 espone `occurs_on`/`build_view`, già stub-pati nello scaffold). Poi T3, T5, quindi T6.
