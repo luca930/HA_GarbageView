@@ -6,12 +6,34 @@ Il modulo non importa nulla dal pacchetto, così può essere testato
 from __future__ import annotations
 
 import calendar
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from typing import Any
 
 SCHEMA_VERSION = 1
 NEXT_LOOKAHEAD_DAYS = 400
 DEFAULT_HORIZON_DAYS = 14
+PICKUP_MORNING = "morning"
+PICKUP_EVENING = "evening"
+DEFAULT_PUT_OUT_FROM = time(18, 0)
+MORNING_PICKUP_UNTIL = time(12, 0)  # un ritiro del mattino resta "da fare" fino a mezzogiorno
+
+
+def pickup_of(item: dict[str, Any]) -> str:
+    """Momento del ritiro di un tipo; i tipi salvati prima della 0.2.2 non lo hanno: mattina."""
+    return PICKUP_EVENING if item.get("pickup") == PICKUP_EVENING else PICKUP_MORNING
+
+
+def is_due_now(
+    pickup: str, today_hit: bool, tomorrow_hit: bool, now: time, put_out_from: time
+) -> bool:
+    """True se è il momento di mettere fuori il rifiuto (CONTRACT.md §2).
+
+    * ritiro serale: acceso tutto il giorno del ritiro;
+    * ritiro del mattino: acceso dalla sera prima (da `put_out_from`) fino a mezzogiorno del ritiro.
+    """
+    if pickup == PICKUP_EVENING:
+        return today_hit
+    return (tomorrow_hit and now >= put_out_from) or (today_hit and now < MORNING_PICKUP_UNTIL)
 
 
 def _monday(day: date) -> date:
@@ -81,12 +103,19 @@ def next_occurrence(
 
 
 def build_view(
-    types: list[dict[str, Any]], today: date, horizon_days: int = DEFAULT_HORIZON_DAYS
+    types: list[dict[str, Any]],
+    today: date,
+    horizon_days: int = DEFAULT_HORIZON_DAYS,
+    now: time | None = None,
+    put_out_from: time = DEFAULT_PUT_OUT_FROM,
 ) -> dict[str, Any]:
     """Costruisce gli attributi del sensore (CONTRACT.md §2).
 
     `days` è una finestra mobile di `horizon_days` giorni che parte da oggi.
+    `now` (ora locale) serve per `due_now`; se assente vale mezzogiorno.
     """
+    now = now or time(12, 0)
+    tomorrow = today + timedelta(days=1)
     # Elementi incompleti (dati corrotti) vengono saltati invece di sollevare.
     types = [
         t for t in types
@@ -105,6 +134,7 @@ def build_view(
         )
 
     out_types = []
+    due_items: list[str] = []
     next_item: dict[str, Any] | None = None
     for t in types:
         n = next_occurrence(t["rule"], today)
@@ -113,10 +143,17 @@ def build_view(
             nxt = {"date": n.isoformat(), "days_until": (n - today).days}
             # A parità di days_until vince il primo in `types` (confronto stretto).
             if next_item is None or nxt["days_until"] < next_item["days_until"]:
-                next_item = {"id": t["id"], **nxt}
+                next_item = {"id": t["id"], **nxt, "pickup": pickup_of(t)}
         # `rule` serve alla card per disegnare il calendario grande (mese, ecc.)
         # senza dover esporre centinaia di giorni: le regole sono poche e piccole.
-        out_types.append({**{k: t[k] for k in ("id", "name", "icon", "rule")}, "next": nxt})
+        due = is_due_now(
+            pickup_of(t), occurs_on(t["rule"], today), occurs_on(t["rule"], tomorrow), now, put_out_from
+        )
+        if due:
+            due_items.append(t["id"])
+        out_types.append(
+            {**{k: t[k] for k in ("id", "name", "icon", "rule")}, "pickup": pickup_of(t), "due_now": due, "next": nxt}
+        )
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -125,6 +162,8 @@ def build_view(
         "horizon_days": horizon_days,
         "types": out_types,
         "today_items": days[0]["items"] if days else [],
+        "due_items": due_items,
+        "put_out_from": put_out_from.strftime("%H:%M"),
         "days": days,
         "next_item": next_item,
     }

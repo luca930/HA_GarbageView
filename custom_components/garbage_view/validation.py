@@ -16,8 +16,8 @@ from .const import (
     DEFAULT_NOTIFICATIONS,
     MAX_TARGETS,
     N_ENABLED,
-    N_EVENING,
     N_EVENING_TIME,
+    N_PUT_OUT_FROM,
     N_MESSAGE,
     N_SKIP_EMPTY,
     N_TARGETS,
@@ -26,6 +26,8 @@ from .const import (
     NOTIFY_TARGET_PREFIX,
     TEMPLATE_MAX_LEN,
     NAME_MAX_LEN,
+    DEFAULT_PICKUP,
+    PICKUPS,
     RULE_EVERY_N_WEEKS,
     RULE_MONTHLY_DAY,
     RULE_MONTHLY_NTH_WEEKDAY,
@@ -71,6 +73,15 @@ def validate_icon(value: Any) -> str:
     if not isinstance(value, str) or not ICON_RE.fullmatch(value.strip()):
         raise ValidationError("invalid_icon", "icon")
     return value.strip()
+
+
+def validate_pickup(value: Any) -> str:
+    """Momento del ritiro: "morning" (default, anche se assente) o "evening"."""
+    if value is None:
+        return DEFAULT_PICKUP
+    if value not in PICKUPS:
+        raise ValidationError("invalid_pickup", "pickup")
+    return value
 
 
 def validate_weekdays(value: Any) -> list[int]:
@@ -138,7 +149,7 @@ def unique_id(name: str, existing: set[str]) -> str:
 
 
 def build_type(
-    *, type_id: str | None, name: Any, icon: Any, rule: Any, existing_ids: set[str]
+    *, type_id: str | None, name: Any, icon: Any, rule: Any, existing_ids: set[str], pickup: Any = None
 ) -> dict[str, Any]:
     """Crea il dict salvato in ``options["types"]``.
 
@@ -151,6 +162,7 @@ def build_type(
         "name": clean_name,
         "icon": validate_icon(icon),
         "rule": validate_rule(rule),
+        "pickup": validate_pickup(pickup),
     }
     if not ID_RE.fullmatch(item["id"]):
         raise ValueError(f"invalid type id: {item['id']!r}")  # errore di programmazione, non di input
@@ -207,8 +219,8 @@ def validate_notifications(raw: dict[str, Any]) -> dict[str, Any]:
         N_ENABLED: enabled,
         N_TARGETS: clean_targets,
         N_TIME: validate_time(raw.get(N_TIME, DEFAULT_NOTIFICATIONS[N_TIME]), N_TIME),
-        N_EVENING: bool(raw.get(N_EVENING, False)),
         N_EVENING_TIME: validate_time(raw.get(N_EVENING_TIME, DEFAULT_NOTIFICATIONS[N_EVENING_TIME]), N_EVENING_TIME),
+        N_PUT_OUT_FROM: validate_time(raw.get(N_PUT_OUT_FROM, DEFAULT_NOTIFICATIONS[N_PUT_OUT_FROM]), N_PUT_OUT_FROM),
         N_SKIP_EMPTY: bool(raw.get(N_SKIP_EMPTY, True)),
         N_TITLE: validate_template(raw.get(N_TITLE), N_TITLE),
         N_MESSAGE: validate_template(raw.get(N_MESSAGE), N_MESSAGE),

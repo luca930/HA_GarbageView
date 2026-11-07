@@ -72,10 +72,12 @@ async def test_add_edit_remove(hass, entry):
     r = await _menu(hass, fid, "finish")
     assert r["type"] == FlowResultType.CREATE_ENTRY
     assert r["data"]["types"] == [
-        {"id": "umido", "name": "Umido", "icon": "mdi:leaf", "rule": {"type": "weekly", "weekdays": [0, 3, 5]}},
-        {"id": "carta", "name": "Carta", "icon": "mdi:newspaper",
+        {"id": "umido", "name": "Umido", "icon": "mdi:leaf", "rule": {"type": "weekly", "weekdays": [0, 3, 5]},
+         "pickup": "morning"},
+        {"id": "carta", "name": "Carta", "icon": "mdi:newspaper", "pickup": "morning",
          "rule": {"type": "every_n_weeks", "weekdays": [2], "interval": 2, "anchor_date": "2026-11-04"}},
-        {"id": "ingombranti", "name": "Ingombranti", "icon": "mdi:sofa", "rule": {"type": "monthly_day", "day": 15}},
+        {"id": "ingombranti", "name": "Ingombranti", "icon": "mdi:sofa", "rule": {"type": "monthly_day", "day": 15},
+         "pickup": "morning"},
     ]
     assert all("color" not in t for t in r["data"]["types"])
 
@@ -162,7 +164,9 @@ async def test_edit_keeps_own_name(hass):
     assert r["step_id"] == "rule_monthly_day"
     await hass.config_entries.options.async_configure(fid, {"day": 31})
     r = await _menu(hass, fid, "finish")
-    assert r["data"]["types"] == [{**t, "icon": "mdi:b", "rule": {"type": "monthly_day", "day": 31}}]
+    assert r["data"]["types"] == [
+        {**t, "icon": "mdi:b", "rule": {"type": "monthly_day", "day": 31}, "pickup": "morning"}
+    ]  # un tipo salvato prima della 0.2.2 (senza pickup) diventa "mattina"
 
 
 def test_translation_option_keys_valid_for_hassfest():
@@ -258,3 +262,31 @@ async def test_existing_types_unchanged_by_editing(hass):
     r = await _menu(hass, r["flow_id"], "edit_type")
     r = await hass.config_entries.options.async_configure(r["flow_id"], {"type_id": "x"})
     assert _default(r, "icon") == "mdi:weird-custom-1"
+
+
+async def test_pickup_choice_saved_and_editable(hass, entry):
+    r = await hass.config_entries.options.async_init(entry.entry_id)
+    fid = r["flow_id"]
+    await _menu(hass, fid, "add_type")
+    await hass.config_entries.options.async_configure(fid, {"preset": "custom"})
+    r = await hass.config_entries.options.async_configure(
+        fid, {"name": "Carta", "icon": "mdi:a", "rule_type": "weekly", "pickup": "evening"})
+    await hass.config_entries.options.async_configure(fid, {"weekdays": ["1"]})
+    # in modifica il valore salvato è preselezionato; si può cambiare
+    await _menu(hass, fid, "edit_type")
+    r = await hass.config_entries.options.async_configure(fid, {"type_id": "carta"})
+    assert next(k for k in r["data_schema"].schema if k == "pickup").default() == "evening"
+    await hass.config_entries.options.async_configure(
+        fid, {"name": "Carta", "icon": "mdi:a", "rule_type": "weekly", "pickup": "morning"})
+    await hass.config_entries.options.async_configure(fid, {"weekdays": ["1"]})
+    r = await _menu(hass, fid, "finish")
+    assert r["data"]["types"][0]["pickup"] == "morning"
+
+
+async def test_invalid_pickup_rejected(hass, entry):
+    r = await hass.config_entries.options.async_init(entry.entry_id)
+    fid = r["flow_id"]
+    await _start_custom(hass, fid)
+    with pytest.raises(InvalidData):
+        await hass.config_entries.options.async_configure(
+            fid, {"name": "X", "icon": "mdi:a", "rule_type": "weekly", "pickup": "noon"})

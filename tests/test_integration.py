@@ -48,7 +48,7 @@ async def test_sensor_state_and_attributes(hass: HomeAssistant, saturday) -> Non
     assert a["today"] == "2026-11-07" and a["horizon_days"] == 14
     assert a["today_items"] == ["plastica"]
     assert len(a["days"]) == 14 and a["days"][0]["is_today"]
-    assert a["next_item"] == {"id": "plastica", "date": "2026-11-07", "days_until": 0}
+    assert a["next_item"] == {"id": "plastica", "date": "2026-11-07", "days_until": 0, "pickup": "morning"}
     carta = next(t for t in a["types"] if t["id"] == "carta")
     assert carta["next"] == {"date": "2026-11-09", "days_until": 2}
     # la regola è esposta per il calendario grande della card (CONTRACT.md §2)
@@ -121,3 +121,42 @@ async def test_calendar_event_uses_coordinator_data(hass: HomeAssistant, saturda
     assert hass.states.get("calendar.garbage_view").state == "off"
     entity = hass.data["calendar"].get_entity("calendar.garbage_view")
     assert entity.event is None
+
+
+async def test_due_now_follows_the_clock(hass: HomeAssistant, saturday) -> None:
+    """Carta (lunedì, mattina) si accende domenica alle 18:00; Plastica (sabato, sera) di sabato."""
+    types = [{**t, "pickup": "evening"} if t["id"] == "plastica" else t for t in TYPES]
+    types.append({"id": "dom", "name": "Dom", "icon": "mdi:a", "pickup": "morning",
+                  "rule": {"type": "weekly", "weekdays": [6]}})
+    await setup(hass, types)  # sabato 10:00
+
+    def due():
+        return hass.states.get("sensor.garbage_view_schedule").attributes["due_items"]
+
+    assert due() == ["plastica"]  # sera, oggi: acceso tutto il giorno; "dom" (domani mattina) ancora spento
+    saturday.move_to(datetime(2026, 11, 7, 18, 0, 1, tzinfo=dt_util.get_default_time_zone()))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert due() == ["plastica", "dom"]  # dalle 18:00 si accende il ritiro di domani mattina
+    attrs = hass.states.get("sensor.garbage_view_schedule").attributes
+    assert attrs["put_out_from"] == "18:00"
+    saturday.move_to(datetime(2026, 11, 8, 0, 0, 1, tzinfo=dt_util.get_default_time_zone()))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert due() == ["dom"]  # domenica notte: resta acceso fino a mezzogiorno
+    saturday.move_to(datetime(2026, 11, 8, 12, 0, 1, tzinfo=dt_util.get_default_time_zone()))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert due() == []
+
+
+async def test_put_out_from_option_moves_the_switch_hour(hass: HomeAssistant, saturday) -> None:
+    types = [{"id": "dom", "name": "Dom", "icon": "mdi:a", "pickup": "morning",
+              "rule": {"type": "weekly", "weekdays": [6]}}]
+    entry = await setup(hass, types)  # sabato 10:00
+    assert hass.states.get("sensor.garbage_view_schedule").attributes["due_items"] == []
+    hass.config_entries.async_update_entry(
+        entry, options={**entry.options, "notifications": {"put_out_from": "09:30:00"}})
+    await hass.async_block_till_done()
+    attrs = hass.states.get("sensor.garbage_view_schedule").attributes
+    assert attrs["due_items"] == ["dom"] and attrs["put_out_from"] == "09:30"

@@ -2,6 +2,22 @@
 
 Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/). / Format based on Keep a Changelog.
 
+## [0.2.2] - 2026-11-07
+
+### Novità / Added
+- **Orario di ritiro per tipo**: ogni tipo ha «Ritiro: al mattino / alla sera» (default mattina, nell'options flow, it/en). / Per-type pickup time (morning/evening).
+- **La card si accende al momento giusto**: ritiro del mattino → acceso dalla sera prima (da `put_out_from`, default 18:00) fino a mezzogiorno del ritiro; ritiro serale → acceso tutto il giorno del ritiro; altrimenti tenue. Vale per le tessere e per la barra «Prossimo». Mattina/sera compaiono nella riga della data e nella barra. / Tiles and the «Next» bar light up only when it is time to put the bin out.
+- **Promemoria che seguono il ritiro**: mattina → la sera prima (`evening_time`, default 20:00, elenco di domani); sera → il giorno stesso (`time`, default 07:30, elenco di oggi). Nuovo campo «Evidenzia dalle» (`put_out_from`). Il sensore si aggiorna anche alle 12:00 e all'ora `put_out_from`.
+- Sensore (additivo, `schema_version` resta 1): `types[].pickup`, `types[].due_now`, `due_items`, `put_out_from`, `next_item.pickup`.
+
+### Cambiato / Changed
+- Rimosso l'interruttore `evening_before`: il promemoria serale è sempre attivo per i tipi del mattino (con «non inviare se non c'è nulla» non disturba se non serve). Il vecchio valore salvato viene ignorato e scartato al prossimo salvataggio.
+- Nessun doppio invio dopo un riavvio (stessa dedup per `today`/`tomorrow`).
+
+### Compatibilità / Compatibility
+- I tipi salvati senza `pickup` valgono «mattina»; con un backend più vecchio la card mantiene il vecchio comportamento (evidenzia i ritiri di oggi/prossimo).
+- **Da rivedere dopo l'aggiornamento**: chi riceveva il promemoria del mattino per i rifiuti di oggi ora riceve, per quei tipi (default «mattina»), l'avviso la sera prima; per riavere l'avviso al mattino imposta il tipo su «alla sera».
+
 ## [0.2.1] - 2026-11-07
 
 ### Cambiato / Changed

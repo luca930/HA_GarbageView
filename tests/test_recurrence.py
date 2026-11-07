@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from pathlib import Path
 
 import pytest
@@ -23,7 +23,7 @@ TYPES = [
     {"id": "umido", "name": "Umido", "icon": "mdi:food-apple",
      "rule": {"type": "weekly", "weekdays": [1, 4]}},
     {"id": "plastica", "name": "Plastica", "icon": "mdi:recycle",
-     "rule": {"type": "weekly", "weekdays": [5]}},
+     "rule": {"type": "weekly", "weekdays": [5]}, "pickup": "evening"},
     {"id": "carta", "name": "Carta", "icon": "mdi:package-variant",
      "rule": {"type": "every_n_weeks", "weekdays": [0], "interval": 2,
               "anchor_date": "2026-11-09"}},
@@ -124,7 +124,7 @@ def test_next_occurrence_includes_today_and_none():
 
 
 def test_build_view_matches_fixture():
-    view = rec.build_view(TYPES, date(2026, 11, 7))
+    view = rec.build_view(TYPES, date(2026, 11, 7), now=time(10, 0))
     assert view == FIXTURE["attributes"]
 
 
@@ -148,7 +148,7 @@ def test_next_item_tie_goes_to_first_type():
          "rule": {"type": "weekly", "weekdays": [2]}},
     ]
     view = rec.build_view(types, date(2026, 11, 3))  # martedì
-    assert view["next_item"] == {"id": "b", "date": "2026-11-04", "days_until": 1}
+    assert view["next_item"] == {"id": "b", "date": "2026-11-04", "days_until": 1, "pickup": "morning"}
 
 
 def test_build_view_items_follow_types_order_and_multiple_per_day():
@@ -212,3 +212,51 @@ def test_occurrences_fixture_is_current():
     start, end = date.fromisoformat(data["start"]), date.fromisoformat(data["end"])
     for case in data["cases"]:
         assert case["dates"] == [d.isoformat() for d in dates(case["rule"], start, end)]
+
+
+# ---- orario di ritiro / due_now (CONTRACT.md §2) ---------------------------------
+def _view(pickup, weekday_hit, now, put_out_from=time(18, 0)):
+    """Un solo tipo con ritiro `weekday_hit` (0=lun) visto da sabato 2026-11-07 alle `now`."""
+    t = {"id": "x", "name": "X", "icon": "mdi:recycle", "pickup": pickup,
+         "rule": {"type": "weekly", "weekdays": [weekday_hit]}}
+    return rec.build_view([t], date(2026, 11, 7), now=now, put_out_from=put_out_from)
+
+
+@pytest.mark.parametrize(
+    "pickup,hit,now,due",
+    [
+        # mattina, ritiro domenica (domani): spento di giorno, acceso dalle 18:00
+        ("morning", 6, time(10, 0), False),
+        ("morning", 6, time(17, 59), False),
+        ("morning", 6, time(18, 0), True),
+        ("morning", 6, time(23, 59), True),
+        # mattina, ritiro oggi: acceso fino a mezzogiorno, poi spento (passato)
+        ("morning", 5, time(7, 0), True),
+        ("morning", 5, time(11, 59), True),
+        ("morning", 5, time(12, 0), False),
+        ("morning", 5, time(20, 0), False),
+        # sera, ritiro oggi: acceso tutto il giorno; la sera prima è spento
+        ("evening", 5, time(0, 0), True),
+        ("evening", 5, time(23, 59), True),
+        ("evening", 6, time(20, 0), False),
+        # nessun ritiro oggi/domani
+        ("morning", 2, time(20, 0), False),
+    ],
+)
+def test_due_now(pickup, hit, now, due):
+    view = _view(pickup, hit, now)
+    assert view["types"][0]["due_now"] is due
+    assert view["due_items"] == (["x"] if due else [])
+
+
+def test_put_out_from_is_configurable_and_exposed():
+    assert _view("morning", 6, time(16, 0), time(15, 30))["types"][0]["due_now"] is True
+    assert _view("morning", 6, time(16, 0))["put_out_from"] == "18:00"
+    assert _view("morning", 6, time(16, 0), time(15, 30))["put_out_from"] == "15:30"
+
+
+def test_pickup_defaults_to_morning_for_old_types():
+    old = {"id": "x", "name": "X", "icon": "mdi:recycle", "rule": {"type": "weekly", "weekdays": [6]}}
+    view = rec.build_view([old], date(2026, 11, 7), now=time(19, 0))
+    assert view["types"][0]["pickup"] == "morning" and view["types"][0]["due_now"] is True
+    assert view["next_item"]["pickup"] == "morning"

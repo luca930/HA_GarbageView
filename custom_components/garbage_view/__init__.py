@@ -72,6 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: GarbageViewConfigEntry) 
 
 async def _async_options_updated(hass: HomeAssistant, entry: GarbageViewConfigEntry) -> None:
     entry.runtime_data.notifier.async_reload()
+    entry.runtime_data.async_start()  # l'ora "metti fuori" può essere cambiata
     await entry.runtime_data.async_refresh()
 
 
