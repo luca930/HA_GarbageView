@@ -179,3 +179,29 @@ test("calendario: l'editor cambia espansione e periodo in diretta", async ({ pag
   expect(config).toMatchObject({ start_expanded: true, calendar_mode: "month" });
   expect(config).not.toHaveProperty("view");
 });
+
+test("orario di ritiro: tessere e barra accese solo quando due_now", async ({ page }) => {
+  const withDue = (ids) => {
+    const s = structuredClone(state);
+    s.attributes.types.forEach((t) => (t.due_now = ids.includes(t.id)));
+    return s;
+  };
+  await page.goto(harness);
+  const glow = (sel) => page.locator(`garbage-view-card ${sel}`).first().evaluate((e) => getComputedStyle(e).boxShadow);
+
+  // Spento: nessuna tessera accesa, la barra è tenue (nessun contorno accent).
+  await page.evaluate(([c, s]) => window.mountCard(c, s), [{ ...base, style: "apple" }, withDue([])]);
+  await expect(page.locator("garbage-view-card .tile.today")).toHaveCount(0);
+  await expect(page.locator("garbage-view-card .summary-bar.muted")).toHaveCount(1);
+  expect(await glow(".summary-bar")).toBe("none");
+
+  // Sera prima: si accende il ritiro di domani mattina.
+  await page.evaluate(([c, s]) => window.mountCard(c, s), [{ ...base, style: "apple" }, withDue(["umido"])]);
+  await expect(page.locator("garbage-view-card .tile.today")).toHaveCount(1);
+  await expect(page.locator("garbage-view-card .tile.today .name")).toHaveText("Umido");
+
+  // Barra accesa quando il «prossimo» è due_now.
+  await page.evaluate(([c, s]) => window.mountCard(c, s), [{ ...base, style: "apple" }, withDue(["plastica"])]);
+  await expect(page.locator("garbage-view-card .summary-bar.due")).toHaveCount(1);
+  expect(await glow(".summary-bar")).not.toBe("none");
+});

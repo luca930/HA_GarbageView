@@ -36,10 +36,12 @@
         "data": {
           "name": "Name",
           "icon": "Icon",
-          "rule_type": "Schedule"
+          "rule_type": "Schedule",
+          "pickup": "Collected"
         },
         "data_description": {
-          "icon": "Search the list, or type any Material Design icon, e.g. mdi:food-apple (browse them at pictogrammers.com/library/mdi)"
+          "icon": "Search the list, or type any Material Design icon, e.g. mdi:food-apple (browse them at pictogrammers.com/library/mdi)",
+          "pickup": "When the truck comes. Morning: reminder and highlight start the evening before. Evening: they start the same day."
         }
       },
       "rule_weekly": {
@@ -89,13 +91,13 @@
       },
       "notifications": {
         "title": "Mobile notifications",
-        "description": "Sends a push notification to the Home Assistant app listing what to put out. Text follows the Home Assistant language. Use {placeholders} in custom texts.",
+        "description": "Sends a push notification to the Home Assistant app listing what to put out: the evening before for types collected in the morning, the same day for types collected in the evening. Text follows the Home Assistant language. Use {placeholders} in custom texts.",
         "data": {
           "enabled": "Enable notifications",
           "targets": "Devices",
-          "time": "Time (same day)",
-          "evening_before": "Also remind the evening before",
-          "evening_time": "Evening-before time",
+          "evening_time": "Evening-before reminder",
+          "time": "Same-day reminder",
+          "put_out_from": "Highlight from",
           "skip_if_empty": "Skip when nothing is due",
           "title_template": "Custom title",
           "message_template": "Custom message"
@@ -103,7 +105,10 @@
         "data_description": {
           "targets": "Mobile app devices (notify.mobile_app_*)",
           "title_template": "Leave empty for the default text",
-          "message_template": "Leave empty for the default text"
+          "message_template": "Leave empty for the default text",
+          "evening_time": "For types collected in the morning: reminder time the evening before",
+          "time": "For types collected in the evening: reminder time on the day",
+          "put_out_from": "From this time the card lights up the types collected tomorrow morning"
         }
       }
     },
@@ -121,7 +126,8 @@
       "invalid_time": "Enter a valid time.",
       "invalid_targets": "Choose valid mobile app devices.",
       "no_targets": "Choose at least one device.",
-      "invalid_template": "Max 200 characters; use only the listed placeholders."
+      "invalid_template": "Max 200 characters; use only the listed placeholders.",
+      "invalid_pickup": "Choose morning or evening."
     },
     "abort": {
       "max_types": "You reached the maximum of 20 waste types."
@@ -177,6 +183,12 @@
         "textiles": "Textiles",
         "batteries": "Batteries",
         "custom": "Custom…"
+      }
+    },
+    "pickup": {
+      "options": {
+        "morning": "In the morning",
+        "evening": "In the evening"
       }
     }
   },

@@ -18,8 +18,10 @@ from .const import (
     CONF_TYPES,
     DEFAULT_NOTIFICATIONS,
     N_ENABLED,
-    N_EVENING,
     N_EVENING_TIME,
+    N_PUT_OUT_FROM,
+    PICKUPS,
+    DEFAULT_PICKUP,
     N_MESSAGE,
     N_SKIP_EMPTY,
     N_TARGETS,
@@ -71,6 +73,13 @@ _PRESET = selector.SelectSelector(
         options=PRESET_OPTIONS,
         mode=selector.SelectSelectorMode.DROPDOWN,
         translation_key="preset",
+    )
+)
+_PICKUP = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=list(PICKUPS),
+        mode=selector.SelectSelectorMode.LIST,
+        translation_key="pickup",
     )
 )
 _RULE_TYPE = selector.SelectSelector(
@@ -160,9 +169,9 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Required(N_TIME, default=n[N_TIME]): selector.TimeSelector(),
-                vol.Required(N_EVENING, default=n[N_EVENING]): selector.BooleanSelector(),
                 vol.Required(N_EVENING_TIME, default=n[N_EVENING_TIME]): selector.TimeSelector(),
+                vol.Required(N_TIME, default=n[N_TIME]): selector.TimeSelector(),
+                vol.Required(N_PUT_OUT_FROM, default=n[N_PUT_OUT_FROM]): selector.TimeSelector(),
                 vol.Required(N_SKIP_EMPTY, default=n[N_SKIP_EMPTY]): selector.BooleanSelector(),
                 vol.Optional(N_TITLE, default=n[N_TITLE]): selector.TextSelector(),
                 vol.Optional(N_MESSAGE, default=n[N_MESSAGE]): selector.TextSelector(
@@ -214,7 +223,8 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
             if current is None:
                 return await self.async_step_init()
             self._editing = current["id"]
-            self._draft = {"name": current["name"], "icon": current["icon"], "rule_type": current["rule"]["type"]}
+            self._draft = {"name": current["name"], "icon": current["icon"],
+                           "rule_type": current["rule"]["type"], "pickup": current.get("pickup", DEFAULT_PICKUP)}
             return await self.async_step_details()
         return self.async_show_form(step_id="edit_type", data_schema=self._pick_schema())
 
@@ -227,6 +237,7 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
                     "name": name,
                     "icon": validate_icon(user_input["icon"]),
                     "rule_type": user_input["rule_type"],
+                    "pickup": user_input.get("pickup", DEFAULT_PICKUP),
                 }
             except ValidationError as err:
                 errors[err.field] = err.code
@@ -239,6 +250,7 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
                 vol.Required("name", default=d.get("name", vol.UNDEFINED)): selector.TextSelector(),
                 vol.Required("icon", default=d.get("icon", DEFAULT_ICON)): selector.IconSelector(),
                 vol.Required("rule_type", default=d.get("rule_type", RULE_WEEKLY)): _RULE_TYPE,
+                vol.Required("pickup", default=d.get("pickup", DEFAULT_PICKUP)): _PICKUP,
             }
         )
         return self.async_show_form(step_id="details", data_schema=schema, errors=errors)
@@ -329,6 +341,7 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
             name=self._draft["name"],
             icon=self._draft["icon"],
             rule=rule,
+            pickup=self._draft.get("pickup"),
             existing_ids={t["id"] for t in self._types},
         )
         if self._editing:

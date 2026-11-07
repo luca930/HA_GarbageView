@@ -62,9 +62,20 @@ def test_bad_rule():
 def test_build_type():
     t = build_type(type_id=None, name="  Umido ", icon="mdi:food-apple",
                    rule={"type": "monthly_day", "day": 3}, existing_ids={"umido"})
-    assert t == {"id": "umido_2", "name": "Umido", "icon": "mdi:food-apple", "rule": {"type": "monthly_day", "day": 3}}
+    assert t == {"id": "umido_2", "name": "Umido", "icon": "mdi:food-apple", "rule": {"type": "monthly_day", "day": 3},
+                 "pickup": "morning"}
     rule = {"type": "monthly_day", "day": 3}
     for name in ("", "   ", "x" * 41, "a\nb", None):
         assert err(build_type, type_id=None, name=name, icon="mdi:a", rule=rule, existing_ids=set()) == "invalid_name"
     for icon in ("food", "mdi:Food", "mdi:", "<script>", None, "mdi:a b"):
         assert err(build_type, type_id=None, name="A", icon=icon, rule=rule, existing_ids=set()) == "invalid_icon"
+
+
+def test_validate_pickup():
+    from custom_components.garbage_view.validation import validate_pickup
+    assert validate_pickup(None) == "morning"  # tipi salvati prima della 0.2.2
+    assert validate_pickup("evening") == "evening"
+    for bad in ("noon", "", 1, ["morning"]):
+        with pytest.raises(ValidationError) as err:
+            validate_pickup(bad)
+        assert err.value.code == "invalid_pickup"
