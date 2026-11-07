@@ -1,0 +1,14 @@
+{
+  "name": "ha-garbage-view-card-tests",
+  "private": true,
+  "description": "Test della card Lovelace (vitest + Playwright). Non fa parte dell'integrazione HACS.",
+  "scripts": {
+    "test": "vitest run",
+    "test:e2e": "playwright test --config tests/card/playwright.config.mjs --trace off"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "happy-dom": "^20.0.0",
+    "vitest": "^3.2.0"
+  }
+}
