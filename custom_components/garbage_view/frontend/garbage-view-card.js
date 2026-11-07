@@ -722,7 +722,19 @@ class GarbageViewCard extends HTMLElement {
     frag.append(this._calendar);
     if (expanded) this._fillCalendar();
     if (canExpand) frag.append(this._buildExpander(t, expanded));
-    if (this._config.show_summary) frag.append(this._buildSummary(a.next_item, byId, t));
+    if (this._config.show_summary) {
+      // Se qualcosa è da mettere fuori ora, la barra mostra quello (il più vicino), non un ritiro
+      // già passato: es. domenica sera `next_item` è ancora la carta di stamattina, ma la
+      // tessera accesa è l'umido di domani.
+      let summary = a.next_item;
+      const nextType = summary && byId.get(summary.id);
+      if (dueMode && summary && !(nextType && nextType.due_now === true)) {
+        const due = types.filter((x) => x.due_now === true && x.next && Number.isInteger(x.next.days_until))
+          .sort((x, y) => x.next.days_until - y.next.days_until)[0];
+        if (due) summary = { id: due.id, date: due.next.date, days_until: due.next.days_until, pickup: due.pickup };
+      }
+      frag.append(this._buildSummary(summary, byId, t));
+    }
 
     this._content.replaceChildren(frag);
     this._tileKey = null;

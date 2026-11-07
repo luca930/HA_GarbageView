@@ -15,6 +15,7 @@ Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/). / Fo
 ### Cambiato / Changed
 - Rimosso l'interruttore `evening_before`: il promemoria serale è sempre attivo per i tipi del mattino (con «non inviare se non c'è nulla» non disturba se non serve). Il vecchio valore salvato viene ignorato e scartato al prossimo salvataggio.
 - Nessun doppio invio dopo un riavvio (stessa dedup per `today`/`tomorrow`).
+- La barra «Prossimo» mostra il ritiro da mettere fuori ora (il più vicino tra quelli accesi), non un ritiro mattutino già passato (es. domenica sera non indica più la carta di stamattina mentre si accende l'umido di domani).
 - **Le tessere riempiono tutta la larghezza della card**: si allargano in modo uniforme con una larghezza minima e, se non ci stanno, vanno a capo con **righe bilanciate** (5 tessere → 3 + 2 invece di 4 + 1; 7 → 3 + 2 + 2). Ogni riga arriva fino ai bordi, quindi non resta più spazio vuoto accanto a una tessera sola. Stile Apple/HomeKit, animazioni, tema chiaro/scuro e calendario espandibile non cambiano. / Tiles stretch evenly to fill the card width (with a minimum) and wrap into balanced rows; every row spans the full width, so a lone tile no longer leaves empty space.
 
 ### Compatibilità / Compatibility

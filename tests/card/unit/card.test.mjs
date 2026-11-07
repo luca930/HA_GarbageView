@@ -95,6 +95,18 @@ describe("orario di ritiro: evidenza guidata da due_now", () => {
     expect(off.classList.contains("due")).toBe(false);
   });
 
+  it("la barra mostra il ritiro da mettere fuori ora, non un ritiro mattutino già passato", () => {
+    // domenica sera: next_item è ancora la carta di stamattina (non più due_now), ma l'umido di domani è acceso
+    const card = mountCard(makeState((s) => {
+      s.attributes.next_item = { id: "carta", date: "2026-11-07", days_until: 0, pickup: "morning" };
+      setUntil(s, "umido", 1);
+      setDue(s, ["umido"]);
+    }));
+    const bar = q(card, ".summary-bar");
+    expect(bar.classList.contains("due")).toBe(true);
+    expect(bar.querySelector("strong").textContent).toBe("Umido");
+  });
+
   it("mostra il momento del ritiro (mattina/sera) nella barra e nell'aria-label", () => {
     const state = makeState((s) => { setDue(s, []); s.attributes.next_item.pickup = "evening"; });
     const card = mountCard(state);
