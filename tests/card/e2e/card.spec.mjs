@@ -233,6 +233,45 @@ for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) {
   }
 }
 
+// --- Font più grandi (0.2.3): niente overflow né testo tagliato ---------------
+for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) {
+  for (const [style, scale, width] of [["apple", 1, 300], ["homekit", 1, 300], ["apple", 1.5, 360], ["homekit", 1.5, 600]]) {
+    test(`font: ${n} tessere ${style} x${scale} in ${width}px senza overflow (nomi lunghi)`, async ({ page }) => {
+      await page.setViewportSize({ width: width + 40, height: 1000 });
+      await page.goto(harness);
+      const s = manyTypes(n);
+      s.attributes.types.forEach((t, i) => { if (i % 2 === 0) t.name = "Vetro e lattine misti"; });
+      s.attributes.types[0].name = "Raccoltadifferenziatamoltolunga";
+      await page.evaluate(([c, st]) => window.mountCard(c, st), [{ ...base, style, font_scale: scale, start_expanded: true }, s]);
+      await page.waitForTimeout(900);
+      const bad = await page.locator("garbage-view-card").evaluate((card) => {
+        const out = [];
+        const root = card.shadowRoot;
+        const check = (el, label) => { if (el.scrollWidth > el.clientWidth + 1) out.push(`${label} ${el.scrollWidth}>${el.clientWidth}`); };
+        root.querySelectorAll(".tile").forEach((t) => { check(t, "tile"); t.querySelectorAll(".name,.badge,.when").forEach((e) => check(e, e.className)); });
+        root.querySelectorAll(".cal-day,.summary-bar").forEach((e) => check(e, e.className));
+        const tiles = [...root.querySelectorAll(".tile")];
+        tiles.forEach((t) => { const r = t.getBoundingClientRect(); if (r.right > window.innerWidth + 1 || r.left < -1) out.push("tile fuori viewport"); });
+        if (document.documentElement.scrollWidth > document.documentElement.clientWidth) out.push("scroll orizzontale");
+        return out;
+      });
+      expect(bad).toEqual([]);
+    });
+  }
+}
+
+test("font_scale ingrandisce i testi delle tessere", async ({ page }) => {
+  await page.goto(harness);
+  const size = async (fs) => {
+    await page.evaluate(([c, s]) => window.mountCard(c, s), [{ ...base, style: "apple", ...(fs ? { font_scale: fs } : {}) }, state]);
+    return page.locator("garbage-view-card .tile .name").first().evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+  };
+  const normal = await size();
+  expect(normal).toBeGreaterThanOrEqual(14); // più grande della 0.2.2 (12,5px)
+  expect(await size(1.5)).toBeCloseTo(normal * 1.5, 0);
+  expect(await size(0.8)).toBeCloseTo(normal * 0.8, 0);
+});
+
 test("tile_min_width allarga il minimo e porta a capo prima", async ({ page }) => {
   await page.setViewportSize({ width: 447, height: 900 });
   await page.goto(harness);
