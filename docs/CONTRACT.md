@@ -72,3 +72,12 @@ Risorsa servita da `/garbage_view/garbage-view-card.js`. Dark mode automatica.
 `calendar.garbage_view`: un evento "tutto il giorno" per ogni tipo e data, `summary` = `name`, `uid` = `<id>-<date>`.
 
 Fixture di riferimento: `tests/fixtures/schedule_example.json`.
+
+## 3. Opzioni notifiche (`options["notifications"]`)
+```json
+{ "enabled": false, "targets": ["mobile_app_pixel"], "time": "07:30:00",
+  "evening_before": false, "evening_time": "20:00:00", "skip_if_empty": true,
+  "title_template": "", "message_template": "" }
+```
+`targets`: servizi `notify.mobile_app_*` (max 10). Template: max 200 caratteri, solo `{items}`, `{count}`, `{when}`, `{date}`.
+Testi predefiniti in `notification_texts/<lingua>.json`. L'ultimo giorno di invio per tipo (`today`/`tomorrow`) è in `.storage/garbage_view.<entry_id>.notified`.

@@ -19,7 +19,8 @@
           "add_type": "Add waste type",
           "edit_type": "Edit waste type",
           "remove_type": "Remove waste type",
-          "finish": "Save and close"
+          "finish": "Save and close",
+          "notifications": "Mobile notifications"
         }
       },
       "details": {
@@ -78,6 +79,25 @@
         "data": {
           "type_id": "Waste type"
         }
+      },
+      "notifications": {
+        "title": "Mobile notifications",
+        "description": "Sends a push notification to the Home Assistant app listing what to put out. Text follows the Home Assistant language. Use {placeholders} in custom texts.",
+        "data": {
+          "enabled": "Enable notifications",
+          "targets": "Devices",
+          "time": "Time (same day)",
+          "evening_before": "Also remind the evening before",
+          "evening_time": "Evening-before time",
+          "skip_if_empty": "Skip when nothing is due",
+          "title_template": "Custom title",
+          "message_template": "Custom message"
+        },
+        "data_description": {
+          "targets": "Mobile app devices (notify.mobile_app_*)",
+          "title_template": "Leave empty for the default text",
+          "message_template": "Leave empty for the default text"
+        }
       }
     },
     "error": {
@@ -90,7 +110,11 @@
       "invalid_anchor_date": "Enter a valid date.",
       "invalid_nth": "Invalid choice.",
       "invalid_day": "Enter a day between 1 and 31.",
-      "invalid_rule": "Invalid schedule."
+      "invalid_rule": "Invalid schedule.",
+      "invalid_time": "Enter a valid time.",
+      "invalid_targets": "Choose valid mobile app devices.",
+      "no_targets": "Choose at least one device.",
+      "invalid_template": "Max 200 characters; use only the listed placeholders."
     },
     "abort": {
       "max_types": "You reached the maximum of 20 waste types."
@@ -124,6 +148,32 @@
         "monthly_nth_weekday": "Nth weekday of the month",
         "monthly_day": "Day of the month"
       }
+    },
+    "notification_kind": {
+      "options": {
+        "today": "Today",
+        "tomorrow": "Tomorrow (evening reminder)"
+      }
+    }
+  },
+  "services": {
+    "send_test_notification": {
+      "name": "Send test notification",
+      "description": "Sends the notification now to the configured devices, ignoring the schedule.",
+      "fields": {
+        "kind": {
+          "name": "Type",
+          "description": "Today's or tomorrow's reminder"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Garbage View is not loaded."
+    },
+    "no_delivery": {
+      "message": "No notification was delivered. Check the selected devices."
     }
   }
 }

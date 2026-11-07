@@ -1,0 +1,11 @@
+{
+  "title_today": "Da portare fuori oggi",
+  "title_tomorrow": "Da portare fuori domani",
+  "when_today": "oggi",
+  "when_tomorrow": "domani",
+  "message_today": "Oggi porta fuori: {items}.",
+  "message_tomorrow": "Domani porta fuori: {items}.",
+  "message_empty_today": "Oggi non c'è nulla da portare fuori.",
+  "message_empty_tomorrow": "Domani non c'è nulla da portare fuori.",
+  "and": "e"
+}

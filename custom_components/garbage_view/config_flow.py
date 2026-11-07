@@ -14,7 +14,18 @@ from homeassistant.core import callback
 from homeassistant.helpers import selector
 
 from .const import (
+    CONF_NOTIFICATIONS,
     CONF_TYPES,
+    DEFAULT_NOTIFICATIONS,
+    N_ENABLED,
+    N_EVENING,
+    N_EVENING_TIME,
+    N_MESSAGE,
+    N_SKIP_EMPTY,
+    N_TARGETS,
+    N_TIME,
+    N_TITLE,
+    NOTIFY_TARGET_PREFIX,
     DEFAULT_ICON,
     DOMAIN,
     MAX_TYPES,
@@ -24,7 +35,13 @@ from .const import (
     RULE_TYPES,
     RULE_WEEKLY,
 )
-from .validation import ValidationError, build_type, validate_icon, validate_name
+from .validation import (
+    ValidationError,
+    build_type,
+    validate_icon,
+    validate_name,
+    validate_notifications,
+)
 
 _WEEKDAYS = selector.SelectSelector(
     selector.SelectSelectorConfig(
@@ -88,20 +105,71 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
         self._types: list[dict[str, Any]] | None = None
         self._editing: str | None = None  # id del tipo in modifica
         self._draft: dict[str, Any] = {}
+        self._notify: dict[str, Any] | None = None
 
     # ---- menu -----------------------------------------------------------
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         if self._types is None:  # prima apertura: le modifiche restano in memoria fino a "Salva"
             self._types = [dict(t) for t in self.config_entry.options.get(CONF_TYPES, [])]
+        if self._notify is None:
+            saved = self.config_entry.options.get(CONF_NOTIFICATIONS)
+            self._notify = {**DEFAULT_NOTIFICATIONS, **(saved if isinstance(saved, dict) else {})}
         self._editing, self._draft = None, {}
         menu = ["add_type"]
         if self._types:
             menu += ["edit_type", "remove_type"]
-        menu.append("finish")
+        menu += ["notifications", "finish"]
         return self.async_show_menu(step_id="init", menu_options=menu)
 
     async def async_step_finish(self, user_input: dict[str, Any] | None = None):
-        return self.async_create_entry(data={**self.config_entry.options, CONF_TYPES: self._types})
+        return self.async_create_entry(
+            data={**self.config_entry.options, CONF_TYPES: self._types, CONF_NOTIFICATIONS: self._notify}
+        )
+
+    # ---- notifiche -------------------------------------------------------------
+    def _mobile_targets(self) -> list[str]:
+        services = self.hass.services.async_services_for_domain("notify")
+        found = {s for s in services if s.startswith(NOTIFY_TARGET_PREFIX)}
+        return sorted(found | set(self._notify[N_TARGETS]))  # mantiene anche i salvati non più attivi
+
+    async def async_step_notifications(self, user_input: dict[str, Any] | None = None):
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                self._notify = validate_notifications(user_input)
+            except ValidationError as err:
+                errors[err.field] = err.code
+            else:
+                return await self.async_step_init()
+        n = self._notify
+        schema = vol.Schema(
+            {
+                vol.Required(N_ENABLED, default=n[N_ENABLED]): selector.BooleanSelector(),
+                vol.Required(N_TARGETS, default=n[N_TARGETS]): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=self._mobile_targets(),
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(N_TIME, default=n[N_TIME]): selector.TimeSelector(),
+                vol.Required(N_EVENING, default=n[N_EVENING]): selector.BooleanSelector(),
+                vol.Required(N_EVENING_TIME, default=n[N_EVENING_TIME]): selector.TimeSelector(),
+                vol.Required(N_SKIP_EMPTY, default=n[N_SKIP_EMPTY]): selector.BooleanSelector(),
+                vol.Optional(N_TITLE, default=n[N_TITLE]): selector.TextSelector(),
+                vol.Optional(N_MESSAGE, default=n[N_MESSAGE]): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+            }
+        )
+        if user_input is not None:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
+        return self.async_show_form(
+            step_id="notifications",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={"placeholders": "{items}, {count}, {when}, {date}"},
+        )
 
     # ---- aggiungi / modifica ---------------------------------------------
     async def async_step_add_type(self, user_input: dict[str, Any] | None = None):

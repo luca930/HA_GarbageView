@@ -1,0 +1,11 @@
+{
+  "title_today": "Take out today",
+  "title_tomorrow": "Take out tomorrow",
+  "when_today": "today",
+  "when_tomorrow": "tomorrow",
+  "message_today": "Today put out: {items}.",
+  "message_tomorrow": "Tomorrow put out: {items}.",
+  "message_empty_today": "Nothing to put out today.",
+  "message_empty_tomorrow": "Nothing to put out tomorrow.",
+  "and": "and"
+}

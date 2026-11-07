@@ -40,6 +40,17 @@ show_summary: true                     # barra «Prossimo»
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # opzionale
 ```
 
+### Notifiche sul telefono
+Da **Configura → Notifiche sul telefono** puoi attivare una notifica push all'app mobile di Home Assistant con l'elenco di ciò che c'è da portare fuori.
+
+- **Dispositivi**: uno o più servizi `notify.mobile_app_*`.
+- **Orario**: la mattina, per i rifiuti di oggi. Opzionale: promemoria la **sera prima** (per domani).
+- **Non inviare se non c'è nulla** (attivo di default).
+- **Lingua**: il testo segue la lingua di Home Assistant (italiano e inglese inclusi). Per aggiungerne una, copia `custom_components/garbage_view/notification_texts/en.json` come `<lingua>.json` e traduci.
+- **Testi personalizzati** (opzionali, max 200 caratteri) con i segnaposto `{items}`, `{count}`, `{when}`, `{date}`.
+- Fuso orario di Home Assistant, nessun polling, nessun doppio invio dopo un riavvio (se HA era spento all'orario, la notifica parte al riavvio entro 60 minuti).
+- Servizio `garbage_view.send_test_notification` per provarla subito.
+
 ### Personalizzare lo stile
 Lo stile è fatto di variabili CSS pubbliche:
 
@@ -113,6 +124,17 @@ days: 14                               # 7 | 14
 show_summary: true                     # "Next" bar
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # optional
 ```
+
+### Mobile notifications
+From **Configure → Mobile notifications** you can enable a push notification to the Home Assistant mobile app listing what to put out.
+
+- **Devices**: one or more `notify.mobile_app_*` services.
+- **Time**: in the morning, for today's waste. Optional reminder the **evening before** (for tomorrow).
+- **Skip when nothing is due** (on by default).
+- **Language**: the text follows the Home Assistant language (Italian and English included). To add one, copy `custom_components/garbage_view/notification_texts/en.json` to `<language>.json` and translate it.
+- **Custom texts** (optional, max 200 characters) with the placeholders `{items}`, `{count}`, `{when}`, `{date}`.
+- Home Assistant time zone, no polling, no duplicates after a restart (if HA was down at the scheduled time, it is sent on startup within 60 minutes).
+- Service `garbage_view.send_test_notification` to try it right away.
 
 ### Customizing the style
 Styling is driven by public CSS variables (`--gv-font`, `--gv-bg`, `--gv-text`, `--gv-text-secondary`, `--gv-tile-bg`, `--gv-tile-size`, `--gv-radius`, `--gv-gap`, `--gv-accent`, `--gv-shadow`, `--gv-anim-duration`).
