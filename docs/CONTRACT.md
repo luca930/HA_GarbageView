@@ -36,6 +36,7 @@ Regole (`rule`):
   "horizon_days": 14,
   "types": [
     { "id": "umido", "name": "Umido", "icon": "mdi:food-apple",
+      "rule": { "type": "weekly", "weekdays": [1, 4] },
       "next": { "date": "2026-11-10", "days_until": 3 } }
   ],
   "today_items": ["plastica"],
@@ -46,6 +47,7 @@ Regole (`rule`):
 }
 ```
 - `days`: **finestra mobile di `horizon_days` (default 14) giorni che parte da oggi** (il primo elemento è sempre oggi). La card in modalità settimana ne mostra i primi 7.
+- `types[].rule` (aggiunto, retrocompatibile: `schema_version` resta 1): la regola di ricorrenza del §1, copiata così com'è. Serve al **calendario grande** della card, che calcola nel browser (stesso algoritmo di `recurrence.py`, verificato da `tests/fixtures/occurrences.json`) i giorni di qualsiasi settimana o mese, anche passati, senza che il sensore debba esportare decine di giorni (attributi piccoli, niente limite di 16 KB del recorder). Se manca (backend più vecchio) la card ripiega sui soli `days`.
 - `items` / `today_items`: id presenti in `types`, nell'ordine di `types`.
 - `types[].next`: prossima occorrenza (oggi incluso) con `days_until`, oppure `null` se non calcolabile entro 400 giorni. L'ordine/etichette "Oggi", "Domani", "N giorni" sono resi dalla card (i18n it/en), non dal backend.
 - `next_item`: il tipo con `days_until` minore (a parità, primo in `types`), oppure `null` se nessun tipo ha occorrenze.
@@ -62,9 +64,14 @@ entity: sensor.garbage_view_schedule   # obbligatorio
 title: Raccolta differenziata           # opzionale
 style: apple                            # apple | homekit
 days: 14                                # 7 | 14 (quanti giorni mostrare nella striscia)
+view: compact                           # compact | calendar (vista iniziale)
+calendar_mode: week                     # week | next_week | month (periodo iniziale del calendario)
+show_view_toggle: true                  # interruttore Compatta / Calendario nell'intestazione
 show_summary: true                      # barra "Prossimo"
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # solo --gv-*
 ```
+Vista **calendario**: sostituisce tessere e striscia con una griglia di 7 colonne (lunedì→domenica). Periodi: settimana corrente, prossima settimana, mese; le frecce ‹ › spostano di una settimana o di un mese (anche indietro). Ogni giorno mostra le icone dei tipi raccolti (max 4 in settimana, 3 nel mese, poi «+N»), sempre con l'unico colore d'accento; oggi è evidenziato e animato, passati e giorni fuori mese sono attenuati. Toccando un giorno compare l'elenco con i nomi; sotto la griglia c'è una legenda icona→nome. Lo stato (vista, periodo) vive solo nella card, non è salvato.
+
 Variabili CSS pubbliche: `--gv-font`, `--gv-bg`, `--gv-text`, `--gv-text-secondary`, `--gv-tile-bg`, `--gv-tile-size`, `--gv-radius`, `--gv-gap`, `--gv-accent`, `--gv-shadow`, `--gv-anim-duration`.
 Risorsa servita da `/garbage_view/garbage-view-card.js`. Dark mode automatica.
 
@@ -72,3 +79,12 @@ Risorsa servita da `/garbage_view/garbage-view-card.js`. Dark mode automatica.
 `calendar.garbage_view`: un evento "tutto il giorno" per ogni tipo e data, `summary` = `name`, `uid` = `<id>-<date>`.
 
 Fixture di riferimento: `tests/fixtures/schedule_example.json`.
+
+## 3. Opzioni notifiche (`options["notifications"]`)
+```json
+{ "enabled": false, "targets": ["mobile_app_pixel"], "time": "07:30:00",
+  "evening_before": false, "evening_time": "20:00:00", "skip_if_empty": true,
+  "title_template": "", "message_template": "" }
+```
+`targets`: servizi `notify.mobile_app_*` (max 10). Template: max 200 caratteri, solo `{items}`, `{count}`, `{when}`, `{date}`.
+Testi predefiniti in `notification_texts/<lingua>.json`. L'ultimo giorno di invio per tipo (`today`/`tomorrow`) è in `.storage/garbage_view.<entry_id>.notified`.

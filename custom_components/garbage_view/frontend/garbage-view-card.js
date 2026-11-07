@@ -16,8 +16,10 @@
  * dopo aver validato il valore con una regex.
  */
 
-const CARD_VERSION = "0.1.0";
+const CARD_VERSION = "0.2.0";
 const SUPPORTED_SCHEMA = 1;
+// Periodi iniziali del calendario grande.
+const CAL_MODES = ["week", "next_week", "month"];
 
 /* ------------------------------------------------------------------ *
  * 1. STRINGS
@@ -38,6 +40,16 @@ const STRINGS = {
     no_entity: (e) => `Entità non trovata: ${e}`,
     unavailable: "Dati non disponibili.",
     bad_schema: "Versione dati non supportata: aggiorna l'integrazione o la card.",
+    view_compact: "Compatta",
+    view_calendar: "Calendario",
+    view_label: "Tipo di vista",
+    next_week: "Prossima",
+    month: "Mese",
+    range_label: "Periodo mostrato",
+    prev_nav: "Periodo precedente",
+    next_nav: "Periodo successivo",
+    more: (n) => `+${n}`,
+    legend: "Legenda",
   },
   en: {
     today: "Today",
@@ -54,6 +66,16 @@ const STRINGS = {
     no_entity: (e) => `Entity not found: ${e}`,
     unavailable: "Data not available.",
     bad_schema: "Unsupported data version: update the integration or the card.",
+    view_compact: "Compact",
+    view_calendar: "Calendar",
+    view_label: "View type",
+    next_week: "Next",
+    month: "Month",
+    range_label: "Period shown",
+    prev_nav: "Previous period",
+    next_nav: "Next period",
+    more: (n) => `+${n}`,
+    legend: "Legend",
   },
 };
 
@@ -193,6 +215,75 @@ const STYLES = `
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gv-accent); flex: none; }
   .detail .none { color: var(--gv-text-secondary); }
 
+  /* ---- Intestazione: titolo + interruttore Compatta / Calendario ---- */
+  .header { gap: 12px; flex-wrap: wrap; align-items: center; }
+  /* Controllo segmentato stile iOS: una "pillola" grigia con il segmento attivo in rilievo */
+  .seg {
+    display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px;
+    background: var(--gv-tile-bg);
+  }
+  .seg button {
+    all: unset; box-sizing: border-box; cursor: pointer;
+    min-height: 34px; padding: 0 14px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .8rem; font-weight: 600; color: var(--gv-text-secondary);
+    transition: background var(--gv-anim-duration) ease, color var(--gv-anim-duration) ease,
+                box-shadow var(--gv-anim-duration) ease;
+  }
+  .seg button[aria-pressed="true"] { background: var(--gv-bg); color: var(--gv-text); box-shadow: var(--gv-shadow); }
+  :host([data-dark]) .seg button[aria-pressed="true"] { background: #636366; }
+  .header .seg { margin-left: auto; }
+  .seg button:focus-visible, .nav button:focus-visible { outline: 3px solid var(--gv-accent); outline-offset: 1px; }
+
+  /* ---- Calendario grande ---- */
+  .cal-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .nav { display: flex; align-items: center; gap: 4px; }
+  .nav button {
+    all: unset; box-sizing: border-box; cursor: pointer;
+    width: 44px; height: 44px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; line-height: 1; color: var(--gv-accent);
+    transition: background var(--gv-anim-duration) ease, transform var(--gv-anim-duration) ease;
+  }
+  .nav button:hover { background: var(--gv-tile-bg); }
+  .nav button:active { transform: scale(.88); }
+  .range { min-width: 8.5em; text-align: center; font-weight: 600; font-size: 1rem; letter-spacing: -.01em; }
+
+  .cal-head, .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .cal-head span { text-align: center; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--gv-text-secondary); padding-bottom: 4px; }
+  /* La griglia scivola dentro dalla direzione di navigazione (--gv-dir) */
+  .cal-grid { animation: gv-slide var(--gv-anim-duration) ease both; }
+  .cal-day {
+    all: unset; box-sizing: border-box; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    min-height: 64px; padding: 6px 2px; border-radius: 12px;
+    background: var(--gv-tile-bg); color: var(--gv-text);
+    transition: transform var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1), box-shadow var(--gv-anim-duration) ease;
+  }
+  .cal.week .cal-day { min-height: 110px; padding-top: 10px; }
+  .cal-day:hover { transform: translateY(-2px); }
+  .cal-day:active { transform: scale(.95); }
+  .cal-day:focus-visible { outline: 3px solid var(--gv-accent); outline-offset: 1px; }
+  .cal-day[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--gv-text-secondary); }
+  /* Giorni attenuati: passati e fuori dal mese. Solo OGGI è in primo piano. */
+  .cal-day.past { opacity: .5; }
+  .cal-day.out { opacity: .3; }
+  .cal-day .num {
+    min-width: 26px; height: 26px; padding: 0 4px; box-sizing: border-box;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px; font-size: .85rem; font-weight: 600; color: var(--gv-text-secondary);
+  }
+  .cal-day.today { background: color-mix(in srgb, var(--gv-accent) 14%, var(--gv-tile-bg)); }
+  .cal-day.today .num { background: var(--gv-accent); color: #fff; animation: gv-ring 2.8s ease-in-out 1s infinite; }
+  /* Icone dei rifiuti del giorno: un solo colore (accent), nessun colore per tipo */
+  .cal-icons { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; max-width: 100%; }
+  .cal-icons .icon { --mdc-icon-size: 16px; font-size: .7rem; font-weight: 700; display: flex; color: var(--gv-accent); }
+  .cal.week .cal-icons .icon { --mdc-icon-size: 22px; font-size: .9rem; }
+  .cal-icons .more { font-size: .65rem; font-weight: 600; color: var(--gv-text-secondary); align-self: center; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 12px 4px 0; font-size: .78rem; color: var(--gv-text-secondary); }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .legend .icon { --mdc-icon-size: 16px; font-size: .7rem; font-weight: 700; display: flex; color: var(--gv-accent); }
+
   /* ---- Barra riepilogo "Prossimo" ---- */
   .summary-bar {
     margin-top: 14px; padding: 12px 16px; border-radius: var(--gv-radius);
@@ -208,6 +299,8 @@ const STYLES = `
   /* ---- Animazioni ---- */
   @keyframes gv-pop   { from { opacity: 0; transform: scale(.88); } }
   @keyframes gv-fade  { from { opacity: 0; transform: translateY(-4px); } }
+  @keyframes gv-slide { from { opacity: 0; transform: translateX(var(--gv-dir, 0px)); } }
+  @keyframes gv-ring  { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--gv-accent) 30%, transparent); } }
   @keyframes gv-glow  { 50% { transform: scale(1.06); box-shadow: 0 10px 32px color-mix(in srgb, var(--gv-accent) 70%, transparent); } }
 
   /* Accessibilità: chi preferisce meno movimento non vede animazioni */
@@ -263,6 +356,56 @@ function parseDate(iso) {
   return new Date(y, m - 1, d);
 }
 
+// Date locali senza sorprese di fuso/ora legale: si costruisce sempre con (anno, mese, giorno).
+const addDays = (date, n) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + n);
+// Lunedì della settimana che contiene `date` (la settimana parte di lunedì, come nel backend).
+const mondayOf = (date) => addDays(date, -weekdayOf(date));
+// 0 = lunedì … 6 = domenica (come date.weekday() di Python; getDay() di JS parte da domenica).
+const weekdayOf = (date) => (date.getDay() + 6) % 7;
+// Numero progressivo del giorno (intero): permette sottrazioni esatte tra date.
+const dayNumber = (date) => Math.round(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+const toIso = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+/**
+ * Ricorrenze: è la traduzione fedele di `occurs_on` in recurrence.py
+ * (regole in docs/CONTRACT.md §1). Serve al calendario grande, che deve
+ * saper rispondere anche per mesi passati o lontani senza che il sensore
+ * debba esportare centinaia di giorni.
+ * Un test (tests/card/unit/recurrence.test.mjs) confronta questo codice con
+ * i risultati di Python: se cambi una regola, cambiala in entrambi.
+ * Regole sconosciute o malformate "non cadono mai", come nel backend.
+ */
+function occursOn(rule, date) {
+  if (!rule || typeof rule !== "object") return false;
+  const wd = weekdayOf(date);
+  const isDays = (v) => Array.isArray(v) && v.every((n) => Number.isInteger(n));
+  switch (rule.type) {
+    case "weekly":
+      return isDays(rule.weekdays) && rule.weekdays.includes(wd);
+    case "every_n_weeks": {
+      const anchor = parseDate(rule.anchor_date);
+      if (!isDays(rule.weekdays) || !anchor || !Number.isInteger(rule.interval) || rule.interval < 1) return false;
+      if (!rule.weekdays.includes(wd)) return false;
+      // Settimane intere tra i due lunedì; modulo "da matematico" (mai negativo).
+      const weeks = (dayNumber(mondayOf(date)) - dayNumber(mondayOf(anchor))) / 7;
+      return (((weeks % rule.interval) + rule.interval) % rule.interval) === 0;
+    }
+    case "monthly_nth_weekday": {
+      if (wd !== rule.weekday) return false;
+      if (rule.nth === -1) return date.getDate() + 7 > new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      return Math.floor((date.getDate() - 1) / 7) + 1 === rule.nth;
+    }
+    case "monthly_day": {
+      if (!Number.isInteger(rule.day)) return false;
+      const last = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+      return date.getDate() === Math.min(rule.day, last);
+    }
+    default:
+      return false;
+  }
+}
+
 // Crea un elemento con classi e testo (sempre via textContent: niente HTML).
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -283,6 +426,10 @@ class GarbageViewCard extends HTMLElement {
     this._content = el("div", "card");
     this._root.append(style, this._content);
     this._selected = null; // data ISO del giorno toccato
+    this._view = "compact"; // vista corrente: "compact" | "calendar" (l'utente può cambiarla col toggle)
+    this._cal = { unit: "week", offset: 0 }; // periodo del calendario: settimana/mese + scostamento da oggi
+    this._focusKey = null; // controllo da rifocalizzare dopo un re-render (tastiera)
+    this._dir = 0; // direzione dello scorrimento (-1 indietro, 1 avanti)
     this._lastStateObj = undefined;
   }
 
@@ -294,10 +441,22 @@ class GarbageViewCard extends HTMLElement {
       title: typeof config.title === "string" ? config.title.slice(0, 80) : "",
       days: Number(config.days) === 7 ? 7 : 14,
       show_summary: config.show_summary !== false,
+      view: config.view === "calendar" ? "calendar" : "compact",
+      calendar_mode: CAL_MODES.includes(config.calendar_mode) ? config.calendar_mode : "week",
+      show_view_toggle: config.show_view_toggle !== false,
       style,
       entity: String(config.entity),
       css: config.css,
     };
+    // Vista e periodo tornano ai valori della config solo se la config li ha
+    // cambiati davvero (così l'editor non azzera la navigazione ad ogni tasto).
+    const prev = this._appliedView;
+    if (!prev || prev.view !== this._config.view || prev.mode !== this._config.calendar_mode) {
+      this._view = this._config.view;
+      this._setMode(this._config.calendar_mode);
+      this._selected = null;
+      this._appliedView = { view: this._config.view, mode: this._config.calendar_mode };
+    }
     this.setAttribute("data-style", style);
     this._applyCustomCss();
     this._lastStateObj = undefined; // forza il re-render
@@ -329,6 +488,19 @@ class GarbageViewCard extends HTMLElement {
   static getStubConfig(hass) {
     const entity = hass && Object.keys(hass.states).find((e) => e.startsWith("sensor.garbage_view"));
     return { entity: entity || "sensor.garbage_view_schedule", style: "apple", days: 14, show_summary: true };
+  }
+
+  // Imposta il periodo del calendario: "week" = questa settimana, "next_week" = la prossima, "month" = il mese.
+  _setMode(mode) {
+    this._cal = mode === "month" ? { unit: "month", offset: 0 } : { unit: "week", offset: mode === "next_week" ? 1 : 0 };
+  }
+
+  // Cambia stato (vista/periodo) e ridisegna ricordando quale controllo aveva il focus.
+  _update(focusKey, dir = 0) {
+    this._focusKey = focusKey;
+    this._dir = dir;
+    this._selected = null;
+    this._render();
   }
 
   // Applica le variabili --gv-* dell'opzione `css` (già filtrate).
@@ -407,21 +579,190 @@ class GarbageViewCard extends HTMLElement {
 
     const frag = document.createDocumentFragment();
 
-    if (this._config.title) {
+    if (this._config.title || this._config.show_view_toggle) {
       const header = el("div", "header");
-      header.append(el("h2", "title", this._config.title));
+      if (this._config.title) header.append(el("h2", "title", this._config.title));
+      if (this._config.show_view_toggle) {
+        header.append(this._segmented(t.view_label, [
+          ["compact", t.view_compact, this._view === "compact", () => { this._view = "compact"; this._update("view-compact"); }],
+          ["calendar", t.view_calendar, this._view === "calendar", () => { this._view = "calendar"; this._update("view-calendar"); }],
+        ], "view"));
+      }
       frag.append(header);
     }
 
-    const grid = el("div", "types");
-    grid.setAttribute("role", "list");
-    types.forEach((type, i) => grid.append(this._buildTile(type, i, highlighted.has(type.id), t)));
-    frag.append(grid);
-
-    if (Array.isArray(a.days)) frag.append(this._buildStrip(a.days, byId, t));
+    if (this._view === "calendar") {
+      frag.append(this._buildCalendar(a, types, byId, t));
+    } else {
+      const grid = el("div", "types");
+      grid.setAttribute("role", "list");
+      types.forEach((type, i) => grid.append(this._buildTile(type, i, highlighted.has(type.id), t)));
+      frag.append(grid);
+      if (Array.isArray(a.days)) frag.append(this._buildStrip(a.days, byId, t));
+    }
     if (this._config.show_summary) frag.append(this._buildSummary(a.next_item, byId, t));
 
     this._content.replaceChildren(frag);
+
+    // Dopo il re-render il controllo premuto non esiste più: rimettiamo il focus sul suo "gemello".
+    if (this._focusKey) {
+      const target = this._root.querySelector(`[data-key="${this._focusKey}"]`);
+      this._focusKey = null;
+      if (target) target.focus();
+    }
+  }
+
+  // Controllo segmentato: `items` = [chiave, testo, attivo, onClick].
+  _segmented(label, items, prefix) {
+    const seg = el("div", "seg");
+    seg.setAttribute("role", "group");
+    seg.setAttribute("aria-label", label);
+    for (const [key, text, active, onClick] of items) {
+      const b = el("button", null, text);
+      b.type = "button";
+      b.dataset.key = `${prefix}-${key}`;
+      b.setAttribute("aria-pressed", String(active));
+      b.addEventListener("click", onClick);
+      seg.append(b);
+    }
+    return seg;
+  }
+
+  /**
+   * Calendario grande: settimana, prossima settimana o mese, con frecce
+   * avanti/indietro. In ogni giorno compaiono le icone dei rifiuti da
+   * portare fuori; toccando un giorno si vede l'elenco con i nomi.
+   */
+  _buildCalendar(a, types, byId, t) {
+    const todayIso = typeof a.today === "string" && parseDate(a.today) ? a.today : toIso(new Date());
+    const today = parseDate(todayIso);
+    const { unit, offset } = this._cal;
+
+    // 1) Quali giorni mostrare: sempre blocchi di 7 colonne che partono di lunedì.
+    let first;
+    let count;
+    let month = null; // mese "a fuoco" (solo vista mensile): i giorni degli altri mesi sono sfumati
+    if (unit === "week") {
+      first = addDays(mondayOf(today), offset * 7);
+      count = 7;
+    } else {
+      month = new Date(today.getFullYear(), today.getMonth() + offset, 1);
+      first = mondayOf(month);
+      const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+      count = Math.ceil((dayNumber(monthEnd) - dayNumber(first) + 1) / 7) * 7; // 28..42 celle
+    }
+
+    // 2) Quali tipi cadono in ogni giorno. Con le regole (`types[].rule`) si calcola qui,
+    //    quindi si può navigare ovunque; senza regole (vecchio backend) si usa `days`.
+    const useRules = types.every((x) => x.rule && typeof x.rule === "object");
+    const fromDays = new Map((Array.isArray(a.days) ? a.days : []).map((d) => [d && d.date, d && d.items]));
+    const itemsOn = (date) => {
+      if (useRules) return types.filter((x) => occursOn(x.rule, date)).map((x) => x.id);
+      const ids = fromDays.get(toIso(date));
+      return Array.isArray(ids) ? ids : [];
+    };
+
+    const entries = [];
+    for (let i = 0; i < count; i++) {
+      const date = addDays(first, i);
+      entries.push({ date: toIso(date), jsDate: date, items: itemsOn(date) });
+    }
+
+    // 3) Barra superiore: periodi rapidi + frecce con etichetta.
+    const section = el("div", "cal " + unit);
+    const toolbar = el("div", "cal-toolbar");
+    toolbar.append(this._segmented(t.range_label, [
+      ["week", t.week, unit === "week" && offset === 0, () => { this._cal = { unit: "week", offset: 0 }; this._update("cal-week"); }],
+      ["next_week", t.next_week, unit === "week" && offset === 1, () => { this._cal = { unit: "week", offset: 1 }; this._update("cal-next_week"); }],
+      ["month", t.month, unit === "month" && offset === 0, () => { this._cal = { unit: "month", offset: 0 }; this._update("cal-month"); }],
+    ], "cal"));
+
+    const nav = el("div", "nav");
+    const step = (delta) => () => { this._cal = { unit, offset: offset + delta }; this._update(delta < 0 ? "nav-prev" : "nav-next", delta); };
+    const prevBtn = el("button", null, "‹");
+    const nextBtn = el("button", null, "›");
+    prevBtn.dataset.key = "nav-prev";
+    nextBtn.dataset.key = "nav-next";
+    for (const [b, label, delta] of [[prevBtn, t.prev_nav, -1], [nextBtn, t.next_nav, 1]]) {
+      b.type = "button";
+      b.setAttribute("aria-label", label);
+      b.addEventListener("click", step(delta));
+    }
+    const range = el("div", "range", this._rangeLabel(entries, month));
+    range.setAttribute("aria-live", "polite");
+    nav.append(prevBtn, range, nextBtn);
+    toolbar.append(nav);
+    section.append(toolbar);
+
+    // 4) Intestazione dei giorni della settimana (1 gen 2024 era un lunedì).
+    const head = el("div", "cal-head");
+    head.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 7; i++) {
+      head.append(el("span", null, new Date(2024, 0, 1 + i).toLocaleDateString(this._lang(), { weekday: "short" }).replace(".", "")));
+    }
+
+    // 5) Griglia dei giorni.
+    const grid = el("div", "cal-grid");
+    grid.style.setProperty("--gv-dir", `${this._dir * 18}px`);
+    this._dir = 0;
+    const detail = el("div", "detail");
+    detail.setAttribute("aria-live", "polite");
+    const maxIcons = unit === "week" ? 4 : 3;
+    const buttons = [];
+    entries.forEach((e) => {
+      const items = e.items.map((id) => byId.get(id)).filter(Boolean);
+      const isToday = e.date === todayIso;
+      const cls = "cal-day" + (isToday ? " today" : e.date < todayIso ? " past" : "") +
+        (month && e.jsDate.getMonth() !== month.getMonth() ? " out" : "");
+      const btn = el("button", cls);
+      btn.type = "button";
+      btn.setAttribute("aria-pressed", String(e.date === this._selected));
+      btn.setAttribute("aria-label", `${isToday ? t.today + ", " : ""}${this._longDate(e.jsDate)}: ${items.length ? items.map((x) => x.name).join(", ") : t.nothing_day}`);
+
+      const num = el("span", "num", String(e.jsDate.getDate()));
+      num.setAttribute("aria-hidden", "true");
+      const icons = el("span", "cal-icons");
+      icons.setAttribute("aria-hidden", "true");
+      items.slice(0, maxIcons).forEach((x) => icons.append(this._icon(x)));
+      if (items.length > maxIcons) icons.append(el("span", "more", t.more(items.length - maxIcons)));
+      btn.append(num, icons);
+
+      btn.addEventListener("click", () => {
+        this._selected = this._selected === e.date ? null : e.date;
+        buttons.forEach(([b, d]) => b.setAttribute("aria-pressed", String(d === this._selected)));
+        this._fillDetail(detail, entries, byId, t);
+      });
+      buttons.push([btn, e.date]);
+      grid.append(btn);
+    });
+
+    section.append(head, grid, detail);
+
+    // 6) Legenda: quale icona è quale rifiuto (le icone da sole non bastano).
+    const legend = el("div", "legend");
+    legend.setAttribute("aria-label", t.legend);
+    types.forEach((x) => {
+      const item = el("span");
+      item.append(this._icon(x), el("span", null, String(x.name || "").slice(0, 40)));
+      legend.append(item);
+    });
+    section.append(legend);
+    return section;
+  }
+
+  // Etichetta del periodo: "novembre 2026" (mese) oppure "9–15 nov 2026" (settimana).
+  _rangeLabel(entries, month) {
+    const lang = this._lang();
+    if (month) {
+      const label = month.toLocaleDateString(lang, { month: "long", year: "numeric" });
+      return label.charAt(0).toUpperCase() + label.slice(1); // "novembre 2026" -> "Novembre 2026"
+    }
+    const a = entries[0].jsDate;
+    const b = entries[entries.length - 1].jsDate;
+    const mon = (d) => d.toLocaleDateString(lang, { month: "short" }).replace(".", "");
+    return a.getMonth() === b.getMonth()
+      ? `${a.getDate()}–${b.getDate()} ${mon(b)} ${b.getFullYear()}`
+      : `${a.getDate()} ${mon(a)} – ${b.getDate()} ${mon(b)} ${b.getFullYear()}`;
   }
 
   _buildTile(type, index, highlighted, t) {
@@ -545,6 +886,14 @@ const EDITOR_STRINGS = {
     days: "Giorni mostrati nella striscia",
     days_7: "7 giorni",
     days_14: "14 giorni",
+    view: "Vista iniziale",
+    view_compact: "Compatta (tessere e striscia)",
+    view_calendar: "Calendario grande",
+    calendar_mode: "Periodo iniziale del calendario",
+    mode_week: "Questa settimana",
+    mode_next_week: "Prossima settimana",
+    mode_month: "Mese",
+    show_view_toggle: "Mostra l'interruttore Compatta / Calendario",
     show_summary: "Mostra la barra \"Prossimo\"",
     css: "Personalizzazione CSS (facoltativa)",
     css_hint: (ok, total) =>
@@ -563,6 +912,14 @@ const EDITOR_STRINGS = {
     days: "Days shown in the strip",
     days_7: "7 days",
     days_14: "14 days",
+    view: "Initial view",
+    view_compact: "Compact (tiles and strip)",
+    view_calendar: "Large calendar",
+    calendar_mode: "Calendar starting period",
+    mode_week: "This week",
+    mode_next_week: "Next week",
+    mode_month: "Month",
+    show_view_toggle: "Show the Compact / Calendar switch",
     show_summary: "Show the \"Next\" bar",
     css: "CSS customization (optional)",
     css_hint: (ok, total) =>
@@ -660,6 +1017,18 @@ class GarbageViewCardEditor extends HTMLElement {
     check.append(this._showSummary, el("span", null, t.show_summary));
     this._form.append(check);
 
+    this._view = this._select([["compact", t.view_compact], ["calendar", t.view_calendar]]);
+    this._field(t.view, this._view);
+
+    this._mode = this._select([["week", t.mode_week], ["next_week", t.mode_next_week], ["month", t.mode_month]]);
+    this._field(t.calendar_mode, this._mode);
+
+    this._showToggle = el("input");
+    this._showToggle.type = "checkbox";
+    const toggleCheck = el("label", "check");
+    toggleCheck.append(this._showToggle, el("span", null, t.show_view_toggle));
+    this._form.append(toggleCheck);
+
     this._css = el("textarea");
     this._css.maxLength = 2000;
     this._css.setAttribute("spellcheck", "false");
@@ -672,6 +1041,9 @@ class GarbageViewCardEditor extends HTMLElement {
     this._title.addEventListener("input", () => this._emit());
     this._styleSel.addEventListener("change", () => this._emit());
     this._days.addEventListener("change", () => this._emit());
+    this._view.addEventListener("change", () => this._emit());
+    this._mode.addEventListener("change", () => this._emit());
+    this._showToggle.addEventListener("change", () => this._emit());
     this._showSummary.addEventListener("change", () => this._emit());
     this._css.addEventListener("input", () => this._emit());
 
@@ -715,6 +1087,9 @@ class GarbageViewCardEditor extends HTMLElement {
     if (active !== this._title) this._title.value = c.title || "";
     this._styleSel.value = c.style === "homekit" ? "homekit" : "apple";
     this._days.value = Number(c.days) === 7 ? "7" : "14";
+    this._view.value = c.view === "calendar" ? "calendar" : "compact";
+    this._mode.value = CAL_MODES.includes(c.calendar_mode) ? c.calendar_mode : "week";
+    this._showToggle.checked = c.show_view_toggle !== false;
     this._showSummary.checked = c.show_summary !== false;
     if (active !== this._css) this._css.value = c.css || "";
     this._updateHints();
@@ -741,6 +1116,9 @@ class GarbageViewCardEditor extends HTMLElement {
     set("title", this._title.value, this._title.value.trim() !== "");
     set("style", this._styleSel.value, true);
     set("days", 7, this._days.value === "7"); // 14 è il default
+    set("view", "calendar", this._view.value === "calendar"); // compact è il default
+    set("calendar_mode", this._mode.value, this._mode.value !== "week"); // week è il default
+    set("show_view_toggle", false, !this._showToggle.checked); // true è il default
     set("show_summary", false, !this._showSummary.checked); // true è il default
     set("css", this._css.value, this._css.value.trim() !== "");
     this._config = config;
@@ -781,3 +1159,7 @@ if (!window.customCards.some((c) => c.type === "garbage-view-card")) {
   });
 }
 console.info(`%c GARBAGE-VIEW-CARD %c ${CARD_VERSION} `, "background:#0a84ff;color:#fff", "");
+
+// Esportati solo per i test unitari (in HA il file è caricato come script classico:
+// `globalThis.__gv` non dà fastidio e non espone nulla di sensibile).
+globalThis.__gv = { occursOn, parseDate };

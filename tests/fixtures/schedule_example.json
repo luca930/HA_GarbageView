@@ -10,6 +10,13 @@
         "id": "umido",
         "name": "Umido",
         "icon": "mdi:food-apple",
+        "rule": {
+          "type": "weekly",
+          "weekdays": [
+            1,
+            4
+          ]
+        },
         "next": {
           "date": "2026-11-10",
           "days_until": 3
@@ -19,6 +26,12 @@
         "id": "plastica",
         "name": "Plastica",
         "icon": "mdi:recycle",
+        "rule": {
+          "type": "weekly",
+          "weekdays": [
+            5
+          ]
+        },
         "next": {
           "date": "2026-11-07",
           "days_until": 0
@@ -28,6 +41,14 @@
         "id": "carta",
         "name": "Carta",
         "icon": "mdi:package-variant",
+        "rule": {
+          "type": "every_n_weeks",
+          "weekdays": [
+            0
+          ],
+          "interval": 2,
+          "anchor_date": "2026-11-09"
+        },
         "next": {
           "date": "2026-11-09",
           "days_until": 2
@@ -37,6 +58,11 @@
         "id": "vetro",
         "name": "Vetro",
         "icon": "mdi:glass-fragile",
+        "rule": {
+          "type": "monthly_nth_weekday",
+          "weekday": 3,
+          "nth": 2
+        },
         "next": {
           "date": "2026-11-12",
           "days_until": 5

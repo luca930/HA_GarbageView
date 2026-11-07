@@ -199,3 +199,16 @@ def test_build_view_skips_incomplete_types():
 ])
 def test_malformed_rules_never_raise(rule):
     assert rec.occurs_on(rule, date(2026, 11, 2)) is False
+
+
+def test_occurrences_fixture_is_current():
+    """tests/fixtures/occurrences.json è la verità condivisa con la card (JS).
+
+    La card ricalcola le ricorrenze nel browser (mese/prev/next); il test
+    vitest confronta il suo risultato con questo file. Se cambi recurrence.py
+    rigenera il file, altrimenti questo test fallisce.
+    """
+    data = json.loads((ROOT / "tests/fixtures/occurrences.json").read_text())
+    start, end = date.fromisoformat(data["start"]), date.fromisoformat(data["end"])
+    for case in data["cases"]:
+        assert case["dates"] == [d.isoformat() for d in dates(case["rule"], start, end)]

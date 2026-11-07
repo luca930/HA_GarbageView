@@ -51,6 +51,8 @@ async def test_sensor_state_and_attributes(hass: HomeAssistant, saturday) -> Non
     assert a["next_item"] == {"id": "plastica", "date": "2026-11-07", "days_until": 0}
     carta = next(t for t in a["types"] if t["id"] == "carta")
     assert carta["next"] == {"date": "2026-11-09", "days_until": 2}
+    # la regola è esposta per il calendario grande della card (CONTRACT.md §2)
+    assert carta["rule"]["type"] == "every_n_weeks" and carta["rule"]["interval"] == 2
 
 
 async def test_midnight_refresh(hass: HomeAssistant, saturday) -> None:

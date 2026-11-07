@@ -25,6 +25,7 @@ class GarbageViewCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(hass, _LOGGER, config_entry=entry, name=DOMAIN, update_interval=None)
         self._unsub_midnight: CALLBACK_TYPE | None = None
+        self.notifier: Any = None  # impostato da async_setup_entry
 
     @property
     def types(self) -> list[dict[str, Any]]:
