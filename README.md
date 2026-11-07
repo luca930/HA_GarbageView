@@ -58,6 +58,32 @@ Ogni tipo di rifiuto ha un campo **Ritiro**: *Al mattino* (default) o *Alla sera
 
 Fuori da queste finestre le tessere restano spente (tenui), così «acceso» significa davvero «adesso porta fuori». Chi aggiorna dalla 0.2.1: i tipi già salvati diventano «Al mattino», la vecchia opzione «promemoria la sera prima» non serve più (il promemoria della sera prima parte per i tipi del mattino) e il promemoria del mattino ora riguarda solo i tipi ritirati la sera: rivedi gli orari in **Configura → Notifiche sul telefono**.
 
+### Dove trovo le impostazioni (guida con screenshot)
+L'orario di ritiro e gli orari delle notifiche si trovano nelle opzioni dell'integrazione.
+
+**0. Controlla la versione.** Il campo **Ritiro** esiste dalla **0.2.2** (la 0.2.3 aggiunge `font_scale`). In **Impostazioni → Dispositivi e servizi → HA Garbage View** leggi «Versione: …» in alto; in HACS la trovi aprendo HA Garbage View (se c'è un aggiornamento compare **Aggiorna**; poi riavvia Home Assistant).
+
+![Versione dell'integrazione](docs/screenshots/guida-versione.png)
+
+1. **Impostazioni → Dispositivi e servizi → HA Garbage View**, poi l'**ingranaggio** (Configura) a destra della riga «Garbage View».
+2. Si apre il menu **Tipi di rifiuto**. «Modifica» e «Rimuovi» compaiono solo se esiste già almeno un tipo.
+
+   ![Menu Configura](docs/screenshots/guida-menu.png)
+3. **Aggiungi tipo di rifiuto** (o **Modifica…**), scegli il preset e premi **Invia**. Nel form trovi **Nome**, **Icona**, **Ricorrenza** e **Ritiro** (*Al mattino* / *Alla sera*).
+
+   ![Form del tipo con il campo Ritiro](docs/screenshots/guida-ritiro.png)
+4. Premi **Invia** e spunta i **Giorni di raccolta**; tornerai al menu.
+
+   ![Giorni di raccolta](docs/screenshots/guida-giorni.png)
+5. **Notifiche sul telefono** (nello stesso menu): abilita, scegli i **Dispositivi** e imposta **Promemoria serale (sera prima)** per i tipi ritirati al mattino, **Promemoria del giorno** per quelli ritirati alla sera ed **Evidenzia dalle** (da che ora la card accende i tipi di domani mattina).
+
+   ![Notifiche sul telefono](docs/screenshots/guida-notifiche.png)
+6. Alla fine premi sempre **Salva e chiudi**: chiudendo con la X le modifiche non vengono salvate.
+
+**Card:** nell'editor visuale trovi *Giorni mostrati nella striscia* (`days`), *Larghezza minima delle tessere* (`tile_min_width`) e *Dimensione del testo* (`font_scale`).
+
+![Editor visuale della card](docs/screenshots/editor.png)
+
 ### Notifiche sul telefono
 Da **Configura → Notifiche sul telefono** puoi attivare una notifica push all'app mobile di Home Assistant con l'elenco di ciò che c'è da portare fuori.
 
@@ -171,6 +197,32 @@ Each waste type has a **Collected** field: *In the morning* (default) or *In the
 | In the evening | all day on collection day | the same day, at 07:30 |
 
 Outside those windows tiles stay muted, so «lit» really means «put it out now». Upgrading from 0.2.1: saved types become «In the morning», the old «also remind the evening before» switch is gone (the evening-before reminder now fires for morning types) and the same-day reminder now only covers evening types: review the times in **Configure → Mobile notifications**.
+
+### Where to find the settings (guide with screenshots)
+Pickup time and notification times live in the integration options.
+
+**0. Check the version.** The **Collected** field exists since **0.2.2** (0.2.3 adds `font_scale`). Under **Settings → Devices & services → HA Garbage View** read «Version: …» at the top; in HACS open HA Garbage View (an **Update** button appears if one is available; then restart Home Assistant).
+
+![Integration version](docs/screenshots/guida-versione.png)
+
+1. **Settings → Devices & services → HA Garbage View**, then the **gear icon** (Configure) on the «Garbage View» row.
+2. The **Waste types** menu opens. «Edit» and «Remove» only show up once at least one type exists. (Screenshots are in Italian; labels follow your Home Assistant language.)
+
+   ![Configure menu](docs/screenshots/guida-menu.png)
+3. **Add waste type** (or **Edit…**), pick the preset and press **Submit**. The form has **Name**, **Icon**, **Schedule** and **Collected** (*In the morning* / *In the evening*).
+
+   ![Waste type form with the Collected field](docs/screenshots/guida-ritiro.png)
+4. Press **Submit** and tick the **Collection days**; you return to the menu.
+
+   ![Collection days](docs/screenshots/guida-giorni.png)
+5. **Mobile notifications** (same menu): enable, pick the **Devices**, set **Evening-before reminder** for morning types, **Same-day reminder** for evening types and **Highlight from** (when the card lights up tomorrow-morning types).
+
+   ![Mobile notifications](docs/screenshots/guida-notifiche.png)
+6. Always finish with **Save and close**: closing with the X discards your changes.
+
+**Card:** the visual editor offers *days shown* (`days`), *minimum tile width* (`tile_min_width`) and *text size* (`font_scale`).
+
+![Visual editor](docs/screenshots/editor.png)
 
 ### Mobile notifications
 From **Configure → Mobile notifications** you can enable a push notification to the Home Assistant mobile app listing what to put out.
