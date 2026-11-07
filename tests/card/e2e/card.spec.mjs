@@ -41,7 +41,7 @@ test("la card è usabile da tastiera e i bersagli sono >= 44px", async ({ page }
   await day.focus();
   await page.keyboard.press("Enter");
   await expect(day).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("garbage-view-card .detail")).toContainText("Carta");
+  await expect(page.locator("garbage-view-card .strip + .detail")).toContainText("Carta");
   const box = await day.boundingBox();
   expect(box.height).toBeGreaterThanOrEqual(44);
 });
@@ -91,7 +91,7 @@ for (const [mode, style, dark] of [
 
     await page.goto(harness);
     await page.evaluate(([c, s, d]) => window.mountCard(c, s, { dark: d }), [
-      { ...base, style, view: "calendar", calendar_mode: mode }, state, dark,
+      { ...base, style, start_expanded: true, calendar_mode: mode }, state, dark,
     ]);
     const card = page.locator("garbage-view-card");
     await expect(card.locator(".cal-day")).toHaveCount(mode === "week" ? 7 : 42);
@@ -108,11 +108,16 @@ test("calendario: navigazione con tastiera e target >= 44px", async ({ page }) =
   await page.evaluate(([c, s]) => window.mountCard(c, s), [{ ...base, style: "apple" }, state]);
   const card = page.locator("garbage-view-card");
 
-  // dall'interruttore Compatta/Calendario al calendario, solo con la tastiera
-  await card.getByRole("button", { name: "Calendario" }).focus();
+  // dal pulsante espandi al calendario, solo con la tastiera
+  const expander = card.locator(".expander");
+  await expect(card.locator(".cal")).toHaveCount(0);
+  await expander.focus();
   await page.keyboard.press("Enter");
+  await expect(expander).toHaveAttribute("aria-expanded", "true");
   await expect(card.locator(".cal")).toBeVisible();
   await expect(card.locator(".range")).toHaveText("2–8 nov 2026");
+  // il calendario cresce in altezza (animazione) e la striscia si chiude
+  await expect(card.locator(".strip")).toBeHidden();
 
   const next = card.getByRole("button", { name: "Periodo successivo" });
   const box = await next.boundingBox();
@@ -130,20 +135,47 @@ test("calendario: navigazione con tastiera e target >= 44px", async ({ page }) =
 
   // toccare un giorno apre il dettaglio (sab 7/11: Plastica)
   await card.locator(".cal-day.today").click();
-  await expect(card.locator(".detail")).toContainText("Plastica");
+  await expect(card.locator(".cal .detail")).toContainText("Plastica");
+
+  // comprimi: torna la striscia, il calendario sparisce
+  await expander.focus();
+  await page.keyboard.press("Space");
+  await expect(expander).toHaveAttribute("aria-expanded", "false");
+  await expect(card.locator(".strip")).toBeVisible();
+  await expect(card.locator(".cal")).toBeHidden();
 });
 
-test("calendario: l'editor cambia vista e periodo in diretta", async ({ page }) => {
+test("espansione: altezza animata, istantanea con prefers-reduced-motion", async ({ page }) => {
+  await page.goto(harness);
+  await page.evaluate(([c, s]) => window.mountCard(c, s), [{ ...base, style: "apple" }, state]);
+  const card = page.locator("garbage-view-card");
+  const panel = card.locator("#gv-calendar");
+  await card.getByRole("button", { name: "Mostra calendario" }).click();
+  await page.waitForTimeout(80);
+  const mid = (await panel.boundingBox())?.height ?? 0; // a metà transizione
+  await page.waitForTimeout(600);
+  const full = (await panel.boundingBox()).height;
+  expect(mid).toBeLessThan(full);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(harness);
+  await page.evaluate(([c, s]) => window.mountCard(c, s), [{ ...base, style: "apple" }, state]);
+  await page.locator("garbage-view-card").getByRole("button", { name: "Mostra calendario" }).click();
+  await page.waitForTimeout(50);
+  expect((await page.locator("garbage-view-card #gv-calendar").boundingBox()).height).toBeGreaterThan(200);
+});
+
+test("calendario: l'editor cambia espansione e periodo in diretta", async ({ page }) => {
   await page.goto(harness);
   await page.evaluate(([c, s]) => window.mountCard(c, s, { editor: true }), [{ ...base, style: "apple" }, state]);
   const editor = page.locator("garbage-view-card-editor");
   const card = page.locator("garbage-view-card");
 
-  await editor.getByLabel("Vista iniziale").selectOption("calendar");
+  await editor.getByLabel("Apri con il calendario già espanso").check();
   await expect(card.locator(".cal")).toBeVisible();
   await editor.getByLabel("Periodo iniziale del calendario").selectOption("month");
   await expect(card.locator(".cal-day")).toHaveCount(42);
   const config = await page.evaluate(() => window.lastConfig);
-  expect(config).toMatchObject({ view: "calendar", calendar_mode: "month" });
-
+  expect(config).toMatchObject({ start_expanded: true, calendar_mode: "month" });
+  expect(config).not.toHaveProperty("view");
 });

@@ -16,7 +16,7 @@
  * dopo aver validato il valore con una regex.
  */
 
-const CARD_VERSION = "0.2.0";
+const CARD_VERSION = "0.2.1";
 const SUPPORTED_SCHEMA = 1;
 // Periodi iniziali del calendario grande.
 const CAL_MODES = ["week", "next_week", "month"];
@@ -40,9 +40,8 @@ const STRINGS = {
     no_entity: (e) => `Entità non trovata: ${e}`,
     unavailable: "Dati non disponibili.",
     bad_schema: "Versione dati non supportata: aggiorna l'integrazione o la card.",
-    view_compact: "Compatta",
-    view_calendar: "Calendario",
-    view_label: "Tipo di vista",
+    expand: "Mostra calendario",
+    collapse: "Nascondi calendario",
     next_week: "Prossima",
     month: "Mese",
     range_label: "Periodo mostrato",
@@ -66,9 +65,8 @@ const STRINGS = {
     no_entity: (e) => `Entity not found: ${e}`,
     unavailable: "Data not available.",
     bad_schema: "Unsupported data version: update the integration or the card.",
-    view_compact: "Compact",
-    view_calendar: "Calendar",
-    view_label: "View type",
+    expand: "Show calendar",
+    collapse: "Hide calendar",
     next_week: "Next",
     month: "Month",
     range_label: "Period shown",
@@ -215,7 +213,7 @@ const STYLES = `
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gv-accent); flex: none; }
   .detail .none { color: var(--gv-text-secondary); }
 
-  /* ---- Intestazione: titolo + interruttore Compatta / Calendario ---- */
+  /* ---- Intestazione ---- */
   .header { gap: 12px; flex-wrap: wrap; align-items: center; }
   /* Controllo segmentato stile iOS: una "pillola" grigia con il segmento attivo in rilievo */
   .seg {
@@ -232,10 +230,39 @@ const STYLES = `
   }
   .seg button[aria-pressed="true"] { background: var(--gv-bg); color: var(--gv-text); box-shadow: var(--gv-shadow); }
   :host([data-dark]) .seg button[aria-pressed="true"] { background: #636366; }
-  .header .seg { margin-left: auto; }
   .seg button:focus-visible, .nav button:focus-visible { outline: 3px solid var(--gv-accent); outline-offset: 1px; }
 
+  /* ---- Pannelli espandibili (striscia <-> calendario) ----
+     Animazione di altezza senza JS di misura: grid-template-rows 0fr -> 1fr.
+     Il pannello chiuso è nascosto (visibility) e "inert": niente focus né lettori di schermo. */
+  .collapse {
+    display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden;
+    transition: grid-template-rows 360ms cubic-bezier(.32, .72, 0, 1), opacity 240ms ease,
+                visibility 0s linear 360ms;
+  }
+  .collapse.open { grid-template-rows: 1fr; opacity: 1; visibility: visible; transition-delay: 0s; }
+  .collapse > .inner { overflow: hidden; min-height: 0; padding: 4px; margin: -4px; }
+
+  /* ---- Pulsante espandi / comprimi ---- */
+  .expander {
+    all: unset; box-sizing: border-box; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; min-height: 44px; margin-top: 8px; border-radius: 12px;
+    font-size: .85rem; font-weight: 600; color: var(--gv-accent);
+    transition: background var(--gv-anim-duration) ease, transform var(--gv-anim-duration) ease;
+  }
+  .expander:hover { background: var(--gv-tile-bg); }
+  .expander:active { transform: scale(.97); }
+  .expander:focus-visible { outline: 3px solid var(--gv-accent); outline-offset: 1px; }
+  .expander .chev {
+    width: 8px; height: 8px; margin-top: -3px;
+    border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+    transform: rotate(45deg); transition: transform 360ms cubic-bezier(.32, .72, 0, 1), margin var(--gv-anim-duration) ease;
+  }
+  .expander[aria-expanded="true"] .chev { transform: rotate(-135deg); margin-top: 3px; }
+
   /* ---- Calendario grande ---- */
+  .cal { margin-top: 16px; }
   .cal-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   .nav { display: flex; align-items: center; gap: 4px; }
   .nav button {
@@ -428,7 +455,7 @@ class GarbageViewCard extends HTMLElement {
     this._content = el("div", "card");
     this._root.append(style, this._content);
     this._selected = null; // data ISO del giorno toccato
-    this._view = "compact"; // vista corrente: "compact" | "calendar" (l'utente può cambiarla col toggle)
+    this._expanded = false; // calendario espanso? (si cambia col pulsante, senza ridisegnare la card)
     this._cal = { unit: "week", offset: 0 }; // periodo del calendario: settimana/mese + scostamento da oggi
     this._focusKey = null; // controllo da rifocalizzare dopo un re-render (tastiera)
     this._dir = 0; // direzione dello scorrimento (-1 indietro, 1 avanti)
@@ -443,7 +470,8 @@ class GarbageViewCard extends HTMLElement {
       title: typeof config.title === "string" ? config.title.slice(0, 80) : "",
       days: Number(config.days) === 7 ? 7 : 14,
       show_summary: config.show_summary !== false,
-      view: config.view === "calendar" ? "calendar" : "compact",
+      // `view: calendar` (v0.2.0) equivale a start_expanded: true.
+      start_expanded: config.start_expanded === true || (config.start_expanded === undefined && config.view === "calendar"),
       calendar_mode: CAL_MODES.includes(config.calendar_mode) ? config.calendar_mode : "week",
       show_view_toggle: config.show_view_toggle !== false,
       style,
@@ -453,11 +481,11 @@ class GarbageViewCard extends HTMLElement {
     // Vista e periodo tornano ai valori della config solo se la config li ha
     // cambiati davvero (così l'editor non azzera la navigazione ad ogni tasto).
     const prev = this._appliedView;
-    if (!prev || prev.view !== this._config.view || prev.mode !== this._config.calendar_mode) {
-      this._view = this._config.view;
+    if (!prev || prev.expanded !== this._config.start_expanded || prev.mode !== this._config.calendar_mode) {
+      this._expanded = this._config.start_expanded;
       this._setMode(this._config.calendar_mode);
       this._selected = null;
-      this._appliedView = { view: this._config.view, mode: this._config.calendar_mode };
+      this._appliedView = { expanded: this._config.start_expanded, mode: this._config.calendar_mode };
     }
     this.setAttribute("data-style", style);
     this._applyCustomCss();
@@ -581,27 +609,29 @@ class GarbageViewCard extends HTMLElement {
 
     const frag = document.createDocumentFragment();
 
-    if (this._config.title || this._config.show_view_toggle) {
+    if (this._config.title) {
       const header = el("div", "header");
-      if (this._config.title) header.append(el("h2", "title", this._config.title));
-      if (this._config.show_view_toggle) {
-        header.append(this._segmented(t.view_label, [
-          ["compact", t.view_compact, this._view === "compact", () => { this._view = "compact"; this._update("view-compact"); }],
-          ["calendar", t.view_calendar, this._view === "calendar", () => { this._view = "calendar"; this._update("view-calendar"); }],
-        ], "view"));
-      }
+      header.append(el("h2", "title", this._config.title));
       frag.append(header);
     }
 
-    if (this._view === "calendar") {
-      frag.append(this._buildCalendar(a, types, byId, t));
-    } else {
-      const grid = el("div", "types");
-      grid.setAttribute("role", "list");
-      types.forEach((type, i) => grid.append(this._buildTile(type, i, highlighted.has(type.id), t)));
-      frag.append(grid);
-      if (Array.isArray(a.days)) frag.append(this._buildStrip(a.days, byId, t));
-    }
+    const grid = el("div", "types");
+    grid.setAttribute("role", "list");
+    types.forEach((type, i) => grid.append(this._buildTile(type, i, highlighted.has(type.id), t)));
+    frag.append(grid);
+
+    // Striscia e calendario stanno nello stesso punto: espandendo, la striscia
+    // si chiude e il calendario si apre (altezza animata, nessun re-render).
+    const canExpand = this._config.show_view_toggle;
+    const expanded = this._expanded;
+    this._ctx = { a, types, byId, t };
+    this._strip = Array.isArray(a.days) ? this._collapse(this._buildStrip(a.days, byId, t), !expanded) : null;
+    this._calendar = this._collapse(null, expanded);
+    this._calendar.id = "gv-calendar";
+    if (this._strip) frag.append(this._strip);
+    frag.append(this._calendar);
+    if (expanded) this._fillCalendar();
+    if (canExpand) frag.append(this._buildExpander(t, expanded));
     if (this._config.show_summary) frag.append(this._buildSummary(a.next_item, byId, t));
 
     this._content.replaceChildren(frag);
@@ -612,6 +642,56 @@ class GarbageViewCard extends HTMLElement {
       this._focusKey = null;
       if (target) target.focus();
     }
+  }
+
+  // Pannello che si apre/chiude in altezza. `content` può essere null (riempito dopo).
+  _collapse(content, open) {
+    const wrap = el("div", "collapse" + (open ? " open" : ""));
+    const inner = el("div", "inner");
+    if (content) inner.append(content);
+    wrap.append(inner);
+    wrap.toggleAttribute("inert", !open);
+    wrap.setAttribute("aria-hidden", String(!open));
+    return wrap;
+  }
+
+  // Il calendario si costruisce solo quando serve (la prima volta che si espande).
+  _fillCalendar() {
+    const inner = this._calendar && this._calendar.firstChild;
+    if (!inner || !this._ctx) return;
+    const { a, types, byId, t } = this._ctx;
+    inner.replaceChildren(this._buildCalendar(a, types, byId, t));
+  }
+
+  _buildExpander(t, expanded) {
+    const b = el("button", "expander");
+    b.type = "button";
+    b.dataset.key = "expander";
+    b.setAttribute("aria-controls", "gv-calendar");
+    b.setAttribute("aria-expanded", String(expanded));
+    const label = el("span", null, expanded ? t.collapse : t.expand);
+    const chev = el("span", "chev");
+    chev.setAttribute("aria-hidden", "true");
+    b.append(label, chev);
+    b.addEventListener("click", () => {
+      this._expanded = b.getAttribute("aria-expanded") !== "true";
+      this._selected = null;
+      b.setAttribute("aria-expanded", String(this._expanded));
+      label.textContent = this._expanded ? t.collapse : t.expand;
+      if (this._expanded && !this._calendar.firstChild.firstChild) this._fillCalendar();
+      // Un frame dopo l'inserimento, così il browser parte dall'altezza 0 e anima.
+      requestAnimationFrame(() => {
+        this._setOpen(this._calendar, this._expanded);
+        if (this._strip) this._setOpen(this._strip, !this._expanded);
+      });
+    });
+    return b;
+  }
+
+  _setOpen(panel, open) {
+    panel.classList.toggle("open", open);
+    panel.toggleAttribute("inert", !open);
+    panel.setAttribute("aria-hidden", String(!open));
   }
 
   // Controllo segmentato: `items` = [chiave, testo, attivo, onClick].
@@ -888,14 +968,12 @@ const EDITOR_STRINGS = {
     days: "Giorni mostrati nella striscia",
     days_7: "7 giorni",
     days_14: "14 giorni",
-    view: "Vista iniziale",
-    view_compact: "Compatta (tessere e striscia)",
-    view_calendar: "Calendario grande",
+    start_expanded: "Apri con il calendario già espanso",
     calendar_mode: "Periodo iniziale del calendario",
     mode_week: "Questa settimana",
     mode_next_week: "Prossima settimana",
     mode_month: "Mese",
-    show_view_toggle: "Mostra l'interruttore Compatta / Calendario",
+    show_view_toggle: "Mostra il pulsante per espandere il calendario",
     show_summary: "Mostra la barra \"Prossimo\"",
     css: "Personalizzazione CSS (facoltativa)",
     css_hint: (ok, total) =>
@@ -914,14 +992,12 @@ const EDITOR_STRINGS = {
     days: "Days shown in the strip",
     days_7: "7 days",
     days_14: "14 days",
-    view: "Initial view",
-    view_compact: "Compact (tiles and strip)",
-    view_calendar: "Large calendar",
+    start_expanded: "Start with the calendar expanded",
     calendar_mode: "Calendar starting period",
     mode_week: "This week",
     mode_next_week: "Next week",
     mode_month: "Month",
-    show_view_toggle: "Show the Compact / Calendar switch",
+    show_view_toggle: "Show the button to expand the calendar",
     show_summary: "Show the \"Next\" bar",
     css: "CSS customization (optional)",
     css_hint: (ok, total) =>
@@ -1019,11 +1095,14 @@ class GarbageViewCardEditor extends HTMLElement {
     check.append(this._showSummary, el("span", null, t.show_summary));
     this._form.append(check);
 
-    this._view = this._select([["compact", t.view_compact], ["calendar", t.view_calendar]]);
-    this._field(t.view, this._view);
-
     this._mode = this._select([["week", t.mode_week], ["next_week", t.mode_next_week], ["month", t.mode_month]]);
     this._field(t.calendar_mode, this._mode);
+
+    this._startExpanded = el("input");
+    this._startExpanded.type = "checkbox";
+    const expandedCheck = el("label", "check");
+    expandedCheck.append(this._startExpanded, el("span", null, t.start_expanded));
+    this._form.append(expandedCheck);
 
     this._showToggle = el("input");
     this._showToggle.type = "checkbox";
@@ -1043,7 +1122,7 @@ class GarbageViewCardEditor extends HTMLElement {
     this._title.addEventListener("input", () => this._emit());
     this._styleSel.addEventListener("change", () => this._emit());
     this._days.addEventListener("change", () => this._emit());
-    this._view.addEventListener("change", () => this._emit());
+    this._startExpanded.addEventListener("change", () => this._emit());
     this._mode.addEventListener("change", () => this._emit());
     this._showToggle.addEventListener("change", () => this._emit());
     this._showSummary.addEventListener("change", () => this._emit());
@@ -1089,7 +1168,7 @@ class GarbageViewCardEditor extends HTMLElement {
     if (active !== this._title) this._title.value = c.title || "";
     this._styleSel.value = c.style === "homekit" ? "homekit" : "apple";
     this._days.value = Number(c.days) === 7 ? "7" : "14";
-    this._view.value = c.view === "calendar" ? "calendar" : "compact";
+    this._startExpanded.checked = c.start_expanded === true || (c.start_expanded === undefined && c.view === "calendar");
     this._mode.value = CAL_MODES.includes(c.calendar_mode) ? c.calendar_mode : "week";
     this._showToggle.checked = c.show_view_toggle !== false;
     this._showSummary.checked = c.show_summary !== false;
@@ -1118,7 +1197,8 @@ class GarbageViewCardEditor extends HTMLElement {
     set("title", this._title.value, this._title.value.trim() !== "");
     set("style", this._styleSel.value, true);
     set("days", 7, this._days.value === "7"); // 14 è il default
-    set("view", "calendar", this._view.value === "calendar"); // compact è il default
+    delete config.view; // opzione 0.2.0, sostituita da start_expanded
+    set("start_expanded", true, this._startExpanded.checked); // false è il default
     set("calendar_mode", this._mode.value, this._mode.value !== "week"); // week è il default
     set("show_view_toggle", false, !this._showToggle.checked); // true è il default
     set("show_summary", false, !this._showSummary.checked); // true è il default
