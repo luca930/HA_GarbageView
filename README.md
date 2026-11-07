@@ -13,6 +13,7 @@ Integrazione per Home Assistant, installabile da HACS, che mostra **cosa buttare
 ### Funzioni
 - Tessere per ogni tipo di rifiuto, con badge «Oggi / Domani / N giorni» e data.
 - Striscia di 7 o 14 giorni e barra riepilogo «Prossimo».
+- **Calendario grande**: settimana, prossima settimana o mese, con frecce avanti/indietro e le icone dei rifiuti da portare fuori accanto a ogni giorno. Si passa dalla vista compatta al calendario con l'interruttore in alto a destra.
 - Ricorrenze: settimanale, ogni N settimane, n-esimo giorno del mese (anche «ultimo»), giorno del mese.
 - Tipi gestiti dall'interfaccia (nome, icona, regola), senza YAML.
 - Sensore `sensor.garbage_view_schedule` ed entità `calendar.garbage_view` per le automazioni.
@@ -36,6 +37,9 @@ entity: sensor.garbage_view_schedule   # obbligatorio
 title: Raccolta differenziata          # opzionale
 style: apple                           # apple | homekit
 days: 14                               # 7 | 14
+view: compact                          # compact | calendar (vista iniziale)
+calendar_mode: week                    # week | next_week | month (periodo iniziale)
+show_view_toggle: true                 # interruttore Compatta / Calendario
 show_summary: true                     # barra «Prossimo»
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # opzionale
 ```
@@ -50,6 +54,15 @@ Da **Configura → Notifiche sul telefono** puoi attivare una notifica push all'
 - **Testi personalizzati** (opzionali, max 200 caratteri) con i segnaposto `{items}`, `{count}`, `{when}`, `{date}`.
 - Fuso orario di Home Assistant, nessun polling, nessun doppio invio dopo un riavvio (se HA era spento all'orario, la notifica parte al riavvio entro 60 minuti).
 - Servizio `garbage_view.send_test_notification` per provarla subito.
+
+### Calendario grande
+Con `view: calendar` (o toccando **Calendario** nell'interruttore) la card mostra una griglia lunedì→domenica con le icone dei rifiuti in ogni giorno. **Settimana / Prossima / Mese** scelgono il periodo, le frecce ‹ › navigano (anche nei mesi passati). Oggi è evidenziato; toccando un giorno vedi i nomi, e una legenda spiega le icone. Le ricorrenze sono calcolate nella card dalle regole esposte dal sensore, quindi non serve alcuna configurazione in più.
+
+| Mese · chiaro | Mese · scuro |
+|---|---|
+| ![](docs/screenshots/calendario-month-apple-chiaro.png) | ![](docs/screenshots/calendario-month-apple-scuro.png) |
+| **Settimana** | **Mese · HomeKit** |
+| ![](docs/screenshots/calendario-week-apple-chiaro.png) | ![](docs/screenshots/calendario-month-homekit-chiaro.png) |
 
 ### Personalizzare lo stile
 Lo stile è fatto di variabili CSS pubbliche:
@@ -98,6 +111,7 @@ A HACS-installable Home Assistant integration that shows **what to put out today
 ### Features
 - One tile per waste type with a "Today / Tomorrow / N days" badge and date.
 - 7- or 14-day strip and a "Next" summary bar.
+- **Large calendar**: week, next week or month with previous/next arrows and small icons showing which waste goes out each day. A switch at the top right toggles between the compact view and the calendar.
 - Recurrences: weekly, every N weeks, nth weekday of the month (including "last"), day of month.
 - Waste types managed from the UI (name, icon, rule), no YAML needed.
 - `sensor.garbage_view_schedule` and `calendar.garbage_view` entities for automations.
@@ -121,6 +135,9 @@ entity: sensor.garbage_view_schedule   # required
 title: Recycling                       # optional
 style: apple                           # apple | homekit
 days: 14                               # 7 | 14
+view: compact                          # compact | calendar (initial view)
+calendar_mode: week                    # week | next_week | month (initial period)
+show_view_toggle: true                 # Compact / Calendar switch
 show_summary: true                     # "Next" bar
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # optional
 ```
@@ -135,6 +152,11 @@ From **Configure → Mobile notifications** you can enable a push notification t
 - **Custom texts** (optional, max 200 characters) with the placeholders `{items}`, `{count}`, `{when}`, `{date}`.
 - Home Assistant time zone, no polling, no duplicates after a restart (if HA was down at the scheduled time, it is sent on startup within 60 minutes).
 - Service `garbage_view.send_test_notification` to try it right away.
+
+### Large calendar
+With `view: calendar` (or by tapping **Calendar** in the switch) the card shows a Monday→Sunday grid with the waste icons on each day. **Week / Next / Month** pick the period and the ‹ › arrows navigate (past months included). Today is highlighted; tap a day to see names, and a legend explains the icons. Recurrences are computed in the card from the rules exposed by the sensor, so no extra setup is needed.
+
+See the screenshots below (`docs/screenshots/calendario-*.png`).
 
 ### Customizing the style
 Styling is driven by public CSS variables (`--gv-font`, `--gv-bg`, `--gv-text`, `--gv-text-secondary`, `--gv-tile-bg`, `--gv-tile-size`, `--gv-radius`, `--gv-gap`, `--gv-accent`, `--gv-shadow`, `--gv-anim-duration`).
@@ -158,3 +180,9 @@ CI runs pytest, card tests, HACS validation and hassfest. To release: bump `vers
 | ![](docs/screenshots/homekit-chiaro.png) | ![](docs/screenshots/homekit-scuro.png) |
 
 ![Visual editor](docs/screenshots/editor.png)
+
+| Calendar · month · light | Calendar · month · dark |
+|---|---|
+| ![](docs/screenshots/calendario-month-apple-chiaro.png) | ![](docs/screenshots/calendario-month-apple-scuro.png) |
+| **Calendar · week** | **Calendar · month · HomeKit** |
+| ![](docs/screenshots/calendario-week-apple-chiaro.png) | ![](docs/screenshots/calendario-month-homekit-chiaro.png) |

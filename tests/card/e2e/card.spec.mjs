@@ -77,3 +77,73 @@ test("l'editor modifica la card in diretta", async ({ page }) => {
 
   await page.screenshot({ path: join(shots, "editor.png"), animations: "disabled", fullPage: true });
 });
+
+// ---- Calendario grande ----
+// Screenshot della vista settimana e mese, nei due stili e temi.
+for (const [mode, style, dark] of [
+  ["week", "apple", false], ["month", "apple", false], ["month", "apple", true], ["month", "homekit", false],
+]) {
+  const theme = dark ? "scuro" : "chiaro";
+  test(`screenshot calendario ${mode} ${style} ${theme}`, async ({ page }) => {
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+
+    await page.goto(harness);
+    await page.evaluate(([c, s, d]) => window.mountCard(c, s, { dark: d }), [
+      { ...base, style, view: "calendar", calendar_mode: mode }, state, dark,
+    ]);
+    const card = page.locator("garbage-view-card");
+    await expect(card.locator(".cal-day")).toHaveCount(mode === "week" ? 7 : 42);
+    await expect(card.locator(".cal-day.today")).toHaveCount(1);
+    await expect(card.locator(".cal-day .icon").first()).toBeVisible();
+    await page.waitForTimeout(1500); // fine delle animazioni d'ingresso
+    await card.screenshot({ path: join(shots, `calendario-${mode}-${style}-${theme}.png`), animations: "disabled" });
+    expect(errors).toEqual([]);
+  });
+}
+
+test("calendario: navigazione con tastiera e target >= 44px", async ({ page }) => {
+  await page.goto(harness);
+  await page.evaluate(([c, s]) => window.mountCard(c, s), [{ ...base, style: "apple" }, state]);
+  const card = page.locator("garbage-view-card");
+
+  // dall'interruttore Compatta/Calendario al calendario, solo con la tastiera
+  await card.getByRole("button", { name: "Calendario" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(card.locator(".cal")).toBeVisible();
+  await expect(card.locator(".range")).toHaveText("2–8 nov 2026");
+
+  const next = card.getByRole("button", { name: "Periodo successivo" });
+  const box = await next.boundingBox();
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  await next.focus();
+  await page.keyboard.press("Enter");
+  await expect(card.locator(".range")).toHaveText("9–15 nov 2026");
+  await expect(next).toBeFocused(); // il focus non si perde dopo il ridisegno
+
+  await card.getByRole("button", { name: "Mese" }).click();
+  await expect(card.locator(".range")).toHaveText(/novembre 2026/i);
+  const day = card.locator(".cal-day").nth(20);
+  expect((await day.boundingBox()).height).toBeGreaterThanOrEqual(44);
+
+  // toccare un giorno apre il dettaglio (sab 7/11: Plastica)
+  await card.locator(".cal-day.today").click();
+  await expect(card.locator(".detail")).toContainText("Plastica");
+});
+
+test("calendario: l'editor cambia vista e periodo in diretta", async ({ page }) => {
+  await page.goto(harness);
+  await page.evaluate(([c, s]) => window.mountCard(c, s, { editor: true }), [{ ...base, style: "apple" }, state]);
+  const editor = page.locator("garbage-view-card-editor");
+  const card = page.locator("garbage-view-card");
+
+  await editor.getByLabel("Vista iniziale").selectOption("calendar");
+  await expect(card.locator(".cal")).toBeVisible();
+  await editor.getByLabel("Periodo iniziale del calendario").selectOption("month");
+  await expect(card.locator(".cal-day")).toHaveCount(42);
+  const config = await page.evaluate(() => window.lastConfig);
+  expect(config).toMatchObject({ view: "calendar", calendar_mode: "month" });
+
+});

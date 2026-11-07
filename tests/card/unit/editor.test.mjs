@@ -132,3 +132,29 @@ describe("editor visuale", () => {
     expect(input.value).toBe("Nuovo");
   });
 });
+
+describe("editor: opzioni del calendario", () => {
+  const field = (editor, label) =>
+    [...editor.shadowRoot.querySelectorAll("label.field")].find((l) => l.textContent.startsWith(label))?.querySelector("select");
+
+  it("mostra i valori della config", () => {
+    const { editor } = mountEditor({ entity: "sensor.x", view: "calendar", calendar_mode: "month", show_view_toggle: false });
+    expect(field(editor, "Vista iniziale").value).toBe("calendar");
+    expect(field(editor, "Periodo iniziale").value).toBe("month");
+    const toggle = [...editor.shadowRoot.querySelectorAll("label.check")].find((l) => l.textContent.includes("interruttore"));
+    expect(toggle.querySelector("input").checked).toBe(false);
+  });
+
+  it("salva view e calendar_mode solo se diversi dal default", () => {
+    const { editor, events } = mountEditor();
+    choose(field(editor, "Vista iniziale"), "calendar");
+    expect(events.at(-1).view).toBe("calendar");
+    choose(field(editor, "Periodo iniziale"), "next_week");
+    expect(events.at(-1).calendar_mode).toBe("next_week");
+    choose(field(editor, "Vista iniziale"), "compact");
+    choose(field(editor, "Periodo iniziale"), "week");
+    expect(events.at(-1)).not.toHaveProperty("view");
+    expect(events.at(-1)).not.toHaveProperty("calendar_mode");
+    expect(events.at(-1)).not.toHaveProperty("show_view_toggle");
+  });
+});

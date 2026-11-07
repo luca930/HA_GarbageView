@@ -114,7 +114,9 @@ def build_view(
             # A parità di days_until vince il primo in `types` (confronto stretto).
             if next_item is None or nxt["days_until"] < next_item["days_until"]:
                 next_item = {"id": t["id"], **nxt}
-        out_types.append({**{k: t[k] for k in ("id", "name", "icon")}, "next": nxt})
+        # `rule` serve alla card per disegnare il calendario grande (mese, ecc.)
+        # senza dover esporre centinaia di giorni: le regole sono poche e piccole.
+        out_types.append({**{k: t[k] for k in ("id", "name", "icon", "rule")}, "next": nxt})
 
     return {
         "schema_version": SCHEMA_VERSION,
