@@ -749,12 +749,27 @@ class GarbageViewCardEditor extends HTMLElement {
   }
 }
 
-if (!customElements.get("garbage-view-card-editor")) {
-  customElements.define("garbage-view-card-editor", GarbageViewCardEditor);
+function registerElements() {
+  if (!customElements.get("garbage-view-card-editor")) {
+    customElements.define("garbage-view-card-editor", GarbageViewCardEditor);
+  }
+  if (!customElements.get("garbage-view-card")) {
+    customElements.define("garbage-view-card", GarbageViewCard);
+  }
 }
 
-if (!customElements.get("garbage-view-card")) {
-  customElements.define("garbage-view-card", GarbageViewCard);
+// Con add_extra_js_url il modulo gira prima che il frontend di HA installi il
+// polyfill dei registri scoped: un elemento definito troppo presto non viene
+// trovato da `customElements.get` e il dashboard mostra "Custom element
+// doesn't exist". Dentro HA si aspetta quindi che il frontend sia pronto
+// (ha-card definito), con un limite di 10 s; fuori da HA si registra subito.
+if (document.querySelector("home-assistant") && !customElements.get("ha-card")) {
+  Promise.race([
+    customElements.whenDefined("ha-card"),
+    new Promise((resolve) => setTimeout(resolve, 10000)),
+  ]).then(registerElements);
+} else {
+  registerElements();
 }
 window.customCards = window.customCards || [];
 if (!window.customCards.some((c) => c.type === "garbage-view-card")) {
