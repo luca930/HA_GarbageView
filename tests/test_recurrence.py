@@ -161,3 +161,16 @@ def test_build_view_empty_types_and_unschedulable():
               "rule": {"type": "weekly", "weekdays": []}}]
     view = rec.build_view(never, date(2026, 11, 7))
     assert view["types"][0]["next"] is None and view["next_item"] is None
+
+
+@pytest.mark.parametrize("rule", [
+    {"type": "weekly"},
+    {"type": "every_n_weeks", "weekdays": [0]},
+    {"type": "every_n_weeks", "weekdays": [0], "interval": 0, "anchor_date": "2026-11-02"},
+    {"type": "every_n_weeks", "weekdays": [0], "interval": 2, "anchor_date": "non-una-data"},
+    {"type": "monthly_nth_weekday", "weekday": 0},
+    {"type": "monthly_day", "day": None},
+    {},
+])
+def test_malformed_rules_never_raise(rule):
+    assert rec.occurs_on(rule, date(2026, 11, 2)) is False

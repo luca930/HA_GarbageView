@@ -23,6 +23,14 @@ def _to_date(value: date | str) -> date:
 
 
 def occurs_on(rule: dict[str, Any], day: date) -> bool:
+    """Ritorna True se la regola (CONTRACT.md §1) cade in `day`; regole malformate non cadono mai."""
+    try:
+        return _occurs_on(rule, day)
+    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+        return False
+
+
+def _occurs_on(rule: dict[str, Any], day: date) -> bool:
     """Ritorna True se la regola (CONTRACT.md §1) cade in `day`.
 
     Una regola sconosciuta non cade mai (falso), così un dato
