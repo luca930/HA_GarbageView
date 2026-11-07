@@ -353,7 +353,9 @@ function parseSafeCss(css) {
 function parseDate(iso) {
   if (typeof iso !== "string" || !DATE_RE.test(iso)) return null;
   const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d);
+  const date = new Date(y, m - 1, d);
+  // Rifiuta date impossibili (es. 2026-02-31): new Date() le "normalizzerebbe" in un altro giorno.
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
 }
 
 // Date locali senza sorprese di fuso/ora legale: si costruisce sempre con (anno, mese, giorno).

@@ -23,6 +23,12 @@ describe("ricorrenze JS = ricorrenze Python", () => {
     });
   });
 
+  it("anchor_date impossibile (2026-02-31) non cade mai, come in Python", () => {
+    const rule = { type: "every_n_weeks", weekdays: [0, 1, 2, 3, 4, 5, 6], interval: 2, anchor_date: "2026-02-31" };
+    expect(parseDate("2026-02-31")).toBeNull();
+    expect(occursOn(rule, parseDate("2026-11-07"))).toBe(false);
+  });
+
   it("regole malformate non cadono mai e non sollevano errori", () => {
     const day = parseDate("2026-11-07");
     for (const bad of [null, {}, { type: "boh" }, { type: "weekly" }, { type: "every_n_weeks", weekdays: [5] },
