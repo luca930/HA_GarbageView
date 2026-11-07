@@ -26,7 +26,6 @@ from .const import (
     N_TIME,
     N_TITLE,
     NOTIFY_TARGET_PREFIX,
-    CONF_TYPES,
     DEFAULT_ICON,
     DOMAIN,
     MAX_TYPES,

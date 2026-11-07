@@ -79,6 +79,7 @@ def test_validate_ok_and_defaults() -> None:
         ({"targets": ["notify.evil"]}, "invalid_targets"),
         ({"targets": ["mobile_app_x; rm"]}, "invalid_targets"),
         ({"targets": "mobile_app_x"}, "invalid_targets"),
+        ({"targets": ""}, "invalid_targets"),
         ({"time": "25:00"}, "invalid_time"),
         ({"time": "abc"}, "invalid_time"),
         ({"time": 730}, "invalid_time"),

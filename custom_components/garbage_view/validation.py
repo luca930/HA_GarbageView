@@ -189,7 +189,9 @@ def validate_template(value: Any, field: str) -> str:
 
 def validate_notifications(raw: dict[str, Any]) -> dict[str, Any]:
     """Valida e normalizza le opzioni delle notifiche (CONTRACT.md §3)."""
-    targets = raw.get(N_TARGETS) or []
+    targets = raw.get(N_TARGETS)
+    if targets is None:
+        targets = []
     if not isinstance(targets, list) or len(targets) > MAX_TARGETS:
         raise ValidationError("invalid_targets", N_TARGETS)
     clean_targets: list[str] = []
