@@ -13,6 +13,18 @@ from datetime import date
 from typing import Any
 
 from .const import (
+    DEFAULT_NOTIFICATIONS,
+    MAX_TARGETS,
+    N_ENABLED,
+    N_EVENING,
+    N_EVENING_TIME,
+    N_MESSAGE,
+    N_SKIP_EMPTY,
+    N_TARGETS,
+    N_TIME,
+    N_TITLE,
+    NOTIFY_TARGET_PREFIX,
+    TEMPLATE_MAX_LEN,
     NAME_MAX_LEN,
     RULE_EVERY_N_WEEKS,
     RULE_MONTHLY_DAY,
@@ -143,3 +155,59 @@ def build_type(
     if not ID_RE.fullmatch(item["id"]):
         raise ValueError(f"invalid type id: {item['id']!r}")  # errore di programmazione, non di input
     return item
+
+
+# ---- Notifiche -------------------------------------------------------------
+_PLACEHOLDER_RE = re.compile(r"\{(\w+)\}")
+TEMPLATE_FIELDS = ("items", "count", "when", "date")
+
+
+def validate_time(value: Any, field: str) -> str:
+    """Accetta "HH:MM" o "HH:MM:SS" e normalizza in "HH:MM:SS"."""
+    if not isinstance(value, str) or not re.fullmatch(r"\d{1,2}:\d{2}(:\d{2})?", value.strip()):
+        raise ValidationError("invalid_time", field)
+    parts = [int(p) for p in value.strip().split(":")]
+    parts += [0] * (3 - len(parts))
+    if not (0 <= parts[0] < 24 and 0 <= parts[1] < 60 and 0 <= parts[2] < 60):
+        raise ValidationError("invalid_time", field)
+    return "{:02d}:{:02d}:{:02d}".format(*parts)
+
+
+def validate_template(value: Any, field: str) -> str:
+    if value is None:
+        return ""
+    if not isinstance(value, str) or len(value) > TEMPLATE_MAX_LEN:
+        raise ValidationError("invalid_template", field)
+    value = value.strip()
+    stripped = _PLACEHOLDER_RE.sub("", value)  # dopo aver tolto i segnaposto noti non devono restare graffe
+    if any(ch in value for ch in "\x00\r") or "{" in stripped or "}" in stripped or any(
+        name not in TEMPLATE_FIELDS for name in _PLACEHOLDER_RE.findall(value)
+    ):
+        raise ValidationError("invalid_template", field)
+    return value
+
+
+def validate_notifications(raw: dict[str, Any]) -> dict[str, Any]:
+    """Valida e normalizza le opzioni delle notifiche (CONTRACT.md §3)."""
+    targets = raw.get(N_TARGETS) or []
+    if not isinstance(targets, list) or len(targets) > MAX_TARGETS:
+        raise ValidationError("invalid_targets", N_TARGETS)
+    clean_targets: list[str] = []
+    for t in targets:
+        if not isinstance(t, str) or not re.fullmatch(rf"{NOTIFY_TARGET_PREFIX}[a-z0-9_]{{1,64}}", t):
+            raise ValidationError("invalid_targets", N_TARGETS)
+        if t not in clean_targets:
+            clean_targets.append(t)
+    enabled = bool(raw.get(N_ENABLED, False))
+    if enabled and not clean_targets:
+        raise ValidationError("no_targets", N_TARGETS)
+    return {
+        N_ENABLED: enabled,
+        N_TARGETS: clean_targets,
+        N_TIME: validate_time(raw.get(N_TIME, DEFAULT_NOTIFICATIONS[N_TIME]), N_TIME),
+        N_EVENING: bool(raw.get(N_EVENING, False)),
+        N_EVENING_TIME: validate_time(raw.get(N_EVENING_TIME, DEFAULT_NOTIFICATIONS[N_EVENING_TIME]), N_EVENING_TIME),
+        N_SKIP_EMPTY: bool(raw.get(N_SKIP_EMPTY, True)),
+        N_TITLE: validate_template(raw.get(N_TITLE), N_TITLE),
+        N_MESSAGE: validate_template(raw.get(N_MESSAGE), N_MESSAGE),
+    }

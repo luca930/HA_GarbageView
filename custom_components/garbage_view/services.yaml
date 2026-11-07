@@ -1,0 +1,11 @@
+send_test_notification:
+  fields:
+    kind:
+      required: false
+      default: today
+      selector:
+        select:
+          options:
+            - today
+            - tomorrow
+          translation_key: notification_kind

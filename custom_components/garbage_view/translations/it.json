@@ -19,7 +19,8 @@
           "add_type": "Aggiungi tipo di rifiuto",
           "edit_type": "Modifica tipo di rifiuto",
           "remove_type": "Rimuovi tipo di rifiuto",
-          "finish": "Salva e chiudi"
+          "finish": "Salva e chiudi",
+          "notifications": "Notifiche sul telefono"
         }
       },
       "details": {
@@ -78,6 +79,25 @@
         "data": {
           "type_id": "Tipo di rifiuto"
         }
+      },
+      "notifications": {
+        "title": "Notifiche sul telefono",
+        "description": "Invia una notifica push all'app di Home Assistant con ciò che c'è da portare fuori. Il testo segue la lingua di Home Assistant. Nei testi personalizzati usa {placeholders}.",
+        "data": {
+          "enabled": "Abilita notifiche",
+          "targets": "Dispositivi",
+          "time": "Orario (stesso giorno)",
+          "evening_before": "Ricorda anche la sera prima",
+          "evening_time": "Orario della sera prima",
+          "skip_if_empty": "Non inviare se non c'è nulla",
+          "title_template": "Titolo personalizzato",
+          "message_template": "Messaggio personalizzato"
+        },
+        "data_description": {
+          "targets": "Dispositivi con app mobile (notify.mobile_app_*)",
+          "title_template": "Vuoto = testo predefinito",
+          "message_template": "Vuoto = testo predefinito"
+        }
       }
     },
     "error": {
@@ -90,7 +110,11 @@
       "invalid_anchor_date": "Inserisci una data valida.",
       "invalid_nth": "Scelta non valida.",
       "invalid_day": "Inserisci un giorno da 1 a 31.",
-      "invalid_rule": "Ricorrenza non valida."
+      "invalid_rule": "Ricorrenza non valida.",
+      "invalid_time": "Inserisci un orario valido.",
+      "invalid_targets": "Scegli dispositivi mobile validi.",
+      "no_targets": "Scegli almeno un dispositivo.",
+      "invalid_template": "Massimo 200 caratteri; usa solo i segnaposto elencati."
     },
     "abort": {
       "max_types": "Hai raggiunto il massimo di 20 tipi di rifiuto."
@@ -124,6 +148,32 @@
         "monthly_nth_weekday": "N-esimo giorno della settimana del mese",
         "monthly_day": "Giorno del mese"
       }
+    },
+    "notification_kind": {
+      "options": {
+        "today": "Oggi",
+        "tomorrow": "Domani (promemoria serale)"
+      }
+    }
+  },
+  "services": {
+    "send_test_notification": {
+      "name": "Invia notifica di prova",
+      "description": "Invia subito la notifica ai dispositivi configurati, ignorando la programmazione.",
+      "fields": {
+        "kind": {
+          "name": "Tipo",
+          "description": "Promemoria di oggi o di domani"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Garbage View non è caricato."
+    },
+    "no_delivery": {
+      "message": "Nessuna notifica consegnata. Controlla i dispositivi selezionati."
     }
   }
 }
