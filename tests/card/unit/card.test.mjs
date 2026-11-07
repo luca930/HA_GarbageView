@@ -69,21 +69,25 @@ describe("tessere: badge relativo", () => {
 });
 
 describe("striscia dei giorni", () => {
-  it("mostra 14 giorni di default, con oggi per primo", () => {
+  it("mostra 7 giorni di default, con oggi per primo", () => {
     const card = mountCard();
-    expect(qa(card, ".day")).toHaveLength(14);
+    expect(qa(card, ".day")).toHaveLength(7);
     const today = qa(card, ".day.today");
     expect(today).toHaveLength(1);
     expect(today[0]).toBe(qa(card, ".day")[0]);
     expect(q(card, ".day .cell").textContent).toBe("7");
   });
 
-  it("days: 7 mostra solo i primi 7 giorni", () => {
-    expect(qa(mountCard(makeState(), { days: 7 }), ".day")).toHaveLength(7);
+  it("di default la striscia mostra 7 giorni (la settimana corrente)", () => {
+    expect(qa(mountCard(), ".day")).toHaveLength(7);
   });
 
-  it("valori di days non validi tornano a 14", () => {
-    expect(qa(mountCard(makeState(), { days: 30 }), ".day")).toHaveLength(14);
+  it("days: 14 mostra 14 giorni", () => {
+    expect(qa(mountCard(makeState(), { days: 14 }), ".day")).toHaveLength(14);
+  });
+
+  it("valori di days non validi tornano a 7", () => {
+    expect(qa(mountCard(makeState(), { days: 30 }), ".day")).toHaveLength(7);
   });
 
   it("solo i giorni con ritiro hanno la classe has", () => {

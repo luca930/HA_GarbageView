@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { makeState, mountCard, q, qa } from "./helpers.mjs";
+import { makeHass, makeState, mountCard, q, qa } from "./helpers.mjs";
 
 await import("../../../custom_components/garbage_view/frontend/garbage-view-card.js");
 
@@ -9,28 +9,40 @@ beforeEach(() => {
 
 // Fixture: oggi = sabato 2026-11-07. Regole: umido mar+ven, plastica sab,
 // carta lun ogni 2 settimane (ancora 9/11), vetro 2° giovedì del mese.
-const cal = (config = {}, state = makeState()) => mountCard(state, { view: "calendar", ...config });
+const cal = (config = {}, state = makeState()) => mountCard(state, { start_expanded: true, ...config });
 const click = (node) => node.dispatchEvent(new Event("click", { bubbles: true }));
 const cell = (card, iso) => qa(card, ".cal-day").find((c) => c.getAttribute("aria-label").includes(iso)) ?? null;
 const cellOf = (card, n) => qa(card, ".cal-day")[n];
 const names = (c) => [...c.querySelectorAll(".cal-icons .icon")].length;
 
 describe("vista calendario", () => {
-  it("di default la card è compatta e c'è l'interruttore", () => {
+  it("di default la card è compatta: calendario chiuso e pulsante per espanderlo", () => {
     const card = mountCard();
     expect(qa(card, ".tile")).toHaveLength(4);
-    expect(q(card, ".cal")).toBeNull();
-    const btns = qa(card, ".header .seg button");
-    expect(btns.map((b) => b.textContent)).toEqual(["Compatta", "Calendario"]);
-    expect(btns[0].getAttribute("aria-pressed")).toBe("true");
+    expect(q(card, ".cal")).toBeNull(); // il calendario non viene nemmeno costruito
+    const btn = q(card, ".expander");
+    expect(btn.getAttribute("aria-label")).toBe("Mostra calendario");
+    expect(btn.getAttribute("aria-expanded")).toBe("false");
+    expect(btn.getAttribute("aria-controls")).toBe("gv-calendar");
+    expect(q(card, "#gv-calendar").hasAttribute("inert")).toBe(true);
+    expect(q(card, ".strip").closest(".collapse").classList.contains("open")).toBe(true);
   });
 
-  it("view: calendar mostra la settimana corrente (lun 2/11 – dom 8/11)", () => {
+  it("start_expanded: le tessere restano e compare il calendario (settimana 2/11 – 8/11)", () => {
     const card = cal();
-    expect(qa(card, ".tile")).toHaveLength(0);
+    expect(qa(card, ".tile")).toHaveLength(4);
     expect(qa(card, ".cal-day")).toHaveLength(7);
     expect(q(card, ".range").textContent).toBe("2–8 nov 2026");
     expect(qa(card, ".cal-day .num").map((n) => n.textContent)).toEqual(["2", "3", "4", "5", "6", "7", "8"]);
+    expect(q(card, ".expander").getAttribute("aria-expanded")).toBe("true");
+    expect(q(card, ".strip").closest(".collapse").classList.contains("open")).toBe(false);
+  });
+
+  it("la vecchia opzione view: calendar equivale a start_expanded", () => {
+    const card = mountCard(makeState(), { view: "calendar" });
+    expect(qa(card, ".cal-day")).toHaveLength(7);
+    const off = mountCard(makeState(), { view: "calendar", start_expanded: false });
+    expect(q(off, ".cal")).toBeNull();
   });
 
   it("oggi è evidenziato, i giorni passati sono attenuati", () => {
@@ -117,25 +129,53 @@ describe("navigazione", () => {
     expect(card.shadowRoot.activeElement?.dataset.key).toBe("nav-next");
   });
 
-  it("l'interruttore passa da calendario a compatta e viceversa", () => {
+  it("il pulsante espande e comprime sul posto, senza ridisegnare la card", async () => {
     const card = mountCard();
-    click(q(card, '[data-key="view-calendar"]'));
+    const tiles = q(card, ".types");
+    const btn = q(card, ".expander");
+    click(btn);
+    expect(btn.getAttribute("aria-expanded")).toBe("true");
+    expect(btn.getAttribute("aria-label")).toBe("Nascondi calendario");
     expect(q(card, ".cal")).not.toBeNull();
-    expect(qa(card, ".tile")).toHaveLength(0);
-    click(q(card, '[data-key="view-compact"]'));
-    expect(qa(card, ".tile")).toHaveLength(4);
+    await new Promise((r) => requestAnimationFrame(r));
+    expect(q(card, "#gv-calendar").classList.contains("open")).toBe(true);
+    expect(q(card, "#gv-calendar").hasAttribute("inert")).toBe(false);
+    expect(q(card, ".strip").closest(".collapse").hasAttribute("inert")).toBe(true);
+    expect(q(card, ".types")).toBe(tiles); // stesso nodo: nessun re-render
+    click(btn);
+    await new Promise((r) => requestAnimationFrame(r));
+    expect(btn.getAttribute("aria-expanded")).toBe("false");
+    expect(q(card, "#gv-calendar").classList.contains("open")).toBe(false);
+    expect(q(card, ".strip").closest(".collapse").hasAttribute("inert")).toBe(false);
   });
 
-  it("show_view_toggle: false nasconde l'interruttore", () => {
+  it("espandere azzera giorno selezionato e dettaglio", () => {
+    const card = mountCard();
+    click(qa(card, ".day")[0]);
+    expect(q(card, ".strip + .detail").textContent).not.toBe("");
+    click(q(card, ".expander"));
+    expect(qa(card, ".day[aria-pressed='true']")).toHaveLength(0);
+    expect(q(card, ".strip + .detail").textContent).toBe("");
+  });
+
+  it("lo stato espanso sopravvive a un aggiornamento di hass", () => {
+    const card = mountCard();
+    click(q(card, ".expander"));
+    card.hass = makeHass(makeState());
+    expect(q(card, ".expander").getAttribute("aria-expanded")).toBe("true");
+    expect(q(card, ".cal")).not.toBeNull();
+  });
+
+  it("show_view_toggle: false nasconde il pulsante", () => {
     const card = cal({ show_view_toggle: false });
-    expect(qa(card, ".header .seg")).toHaveLength(0);
+    expect(q(card, ".expander")).toBeNull();
     expect(q(card, ".cal")).not.toBeNull();
   });
 
   it("un nuovo setConfig con gli stessi valori non azzera la navigazione", () => {
     const card = cal();
     click(q(card, '[data-key="nav-next"]'));
-    card.setConfig({ entity: "sensor.garbage_view_schedule", view: "calendar", title: "Casa" });
+    card.setConfig({ entity: "sensor.garbage_view_schedule", start_expanded: true, title: "Casa" });
     expect(q(card, ".range").textContent).toBe("9–15 nov 2026");
   });
 });
@@ -145,9 +185,9 @@ describe("dettaglio e accessibilità", () => {
     const card = cal();
     click(cellOf(card, 5));
     expect(cellOf(card, 5).getAttribute("aria-pressed")).toBe("true");
-    expect(q(card, ".detail").textContent).toContain("Plastica");
+    expect(q(card, ".cal .detail").textContent).toContain("Plastica");
     click(cellOf(card, 5));
-    expect(q(card, ".detail").textContent).toBe("");
+    expect(q(card, ".cal .detail").textContent).toBe("");
   });
 
   it("c'è una legenda con tutti i tipi", () => {
@@ -163,7 +203,7 @@ describe("dettaglio e accessibilità", () => {
   it("inglese: testi e giorni tradotti", () => {
     const card = cal();
     card.hass = { ...card._hass, language: "en", locale: { language: "en" }, states: { "sensor.garbage_view_schedule": makeState() } };
-    expect(q(card, ".header .seg button").textContent).toBe("Compact");
+    expect(q(card, ".expander").getAttribute("aria-label")).toBe("Hide calendar");
     expect(q(card, ".cal-head span").textContent).toBe("Mon");
   });
 
