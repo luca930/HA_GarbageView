@@ -11,7 +11,7 @@
  *   3. Helper       sanificazione, date, creazione elementi
  *   4. GarbageViewCard   la classe della card (setConfig / set hass / render)
  *
- * SICUREZZA: i dati dell'utente (nomi, colori, icone) non passano mai da
+ * SICUREZZA: i dati dell'utente (nomi, icone) non passano mai da
  * `innerHTML`. Si usano solo `textContent`, `setAttribute` e `style.setProperty`
  * dopo aver validato il valore con una regex.
  */
@@ -113,49 +113,51 @@ const STYLES = `
   .title { font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; margin: 0; }
   .summary { font-size: .85rem; color: var(--gv-text-secondary); }
 
-  /* ---- Tessere dei tipi di rifiuto ---- */
+  /* ---- Tessere dei tipi di rifiuto ----
+     Minimal: un solo colore (--gv-accent). Le tessere sono neutre e attenuate;
+     solo quelle di OGGI sono piene di accent, con alone e un "respiro" lento. */
   .types {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(var(--gv-tile-size), 1fr));
     gap: var(--gv-gap);
   }
   .tile {
-    /* --c = colore del rifiuto (già validato come #RRGGBB), --on-c = testo leggibile sopra --c */
-    --c: var(--gv-accent);
-    --on-c: #fff;
     position: relative;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 6px;
     min-height: calc(var(--gv-tile-size) + 28px);
     padding: 14px 8px;
     border-radius: var(--gv-radius);
-    /* Tessera "tinta" col colore del rifiuto, come nell'esempio di riferimento */
-    background: linear-gradient(160deg, color-mix(in srgb, var(--c) 30%, var(--gv-tile-bg)), color-mix(in srgb, var(--c) 12%, var(--gv-tile-bg)));
-    border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
-    color: var(--gv-text);
+    background: var(--gv-tile-bg);
+    color: var(--gv-text-secondary);
+    opacity: .7;                         /* attenuata: non è oggi */
     box-sizing: border-box;
     text-align: center;
     transition: transform var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1),
-                box-shadow var(--gv-anim-duration) ease;
+                box-shadow var(--gv-anim-duration) ease, opacity var(--gv-anim-duration) ease;
     animation: gv-pop var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1) both;
     animation-delay: calc(var(--i, 0) * 40ms);
   }
-  .tile .icon { color: var(--c); --mdc-icon-size: 40px; font-size: 2rem; line-height: 1; font-weight: 700; display: flex; }
-  .tile .name { font-size: .8rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--gv-text-secondary); overflow-wrap: anywhere; }
-  .tile .badge {
-    font-size: .8rem; font-weight: 700; padding: 3px 12px; border-radius: 999px;
-    background: var(--c); color: var(--on-c);
-  }
-  .tile .when { font-size: .72rem; color: var(--gv-text-secondary); }
-  /* Evidenziata (oggi, oppure il prossimo ritiro): bordo e alone del suo colore + leggero "respiro" */
-  .tile.hl {
-    border-color: var(--c);
-    box-shadow: 0 0 0 2px var(--c), 0 6px 22px color-mix(in srgb, var(--c) 50%, transparent);
+  .tile .icon { --mdc-icon-size: 36px; font-size: 1.8rem; line-height: 1; font-weight: 700; display: flex; }
+  .tile .name { font-size: .78rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; overflow-wrap: anywhere; }
+  .tile .badge { font-size: .78rem; font-weight: 600; padding: 3px 12px; border-radius: 999px; background: rgba(128, 128, 128, .18); color: var(--gv-text); }
+  .tile .when { font-size: .72rem; }
+  /* Prossimo ritiro (quando oggi non c'è nulla): normale opacità + bordo accent sottile */
+  .tile.next { opacity: 1; box-shadow: inset 0 0 0 2px var(--gv-accent); }
+  .tile.next .icon { color: var(--gv-accent); }
+  /* OGGI: protagonista. Fill accent, testo bianco, alone e respiro lento */
+  .tile.today {
+    opacity: 1;
+    background: var(--gv-accent);
+    color: #fff;
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--gv-accent) 50%, transparent);
+    transform: scale(1.04);
     animation: gv-pop var(--gv-anim-duration) cubic-bezier(.34, 1.56, .64, 1) both,
-               gv-pulse 2.8s ease-in-out 1s infinite;
+               gv-glow 2.8s ease-in-out 1s infinite;
     animation-delay: calc(var(--i, 0) * 40ms), 1s;
   }
-  .tile.today .badge { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 35%, transparent); }
+  .tile.today .icon { color: #fff; }
+  .tile.today .badge { background: rgba(255, 255, 255, .25); color: #fff; }
 
   /* ---- Striscia dei giorni ---- */
   .strip { display: grid; gap: 4px; margin-top: 16px; }
@@ -177,9 +179,10 @@ const STYLES = `
   }
   .day:hover .cell { transform: translateY(-2px); }
   .day:active .cell { transform: scale(.94); }
-  .day.has .cell { color: var(--on-c, #fff); }                 /* sfondo impostato in JS */
-  .day.today .cell { outline: 2px solid var(--gv-text); outline-offset: 1px; }
-  .day[aria-pressed="true"] .cell { box-shadow: 0 0 0 3px var(--gv-accent); }
+  /* Giorno con ritiro: tinta accent leggera. Oggi: pieno. */
+  .day.has .cell { background: color-mix(in srgb, var(--gv-accent) 22%, var(--gv-tile-bg)); color: var(--gv-text); }
+  .day.today .cell { background: var(--gv-accent); color: #fff; }
+  .day[aria-pressed="true"] .cell { box-shadow: 0 0 0 2px var(--gv-text-secondary); }
 
   /* ---- Dettaglio del giorno toccato ---- */
   .detail { margin: 12px 4px 0; font-size: .9rem; animation: gv-fade var(--gv-anim-duration) ease both; }
@@ -187,17 +190,16 @@ const STYLES = `
   .detail .d-title { font-weight: 600; margin-bottom: 6px; text-transform: capitalize; }
   .detail ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   .detail li { display: flex; align-items: center; gap: 8px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gv-accent); flex: none; }
   .detail .none { color: var(--gv-text-secondary); }
 
   /* ---- Barra riepilogo "Prossimo" ---- */
   .summary-bar {
-    --c: var(--gv-accent);
     margin-top: 14px; padding: 12px 16px; border-radius: var(--gv-radius);
     background: var(--gv-tile-bg); display: flex; align-items: center; gap: 12px;
     font-size: .95rem; animation: gv-fade var(--gv-anim-duration) ease both;
   }
-  .summary-bar .icon { color: var(--c); --mdc-icon-size: 26px; font-size: 1.3rem; font-weight: 700; display: flex; }
+  .summary-bar .icon { color: var(--gv-accent); --mdc-icon-size: 26px; font-size: 1.3rem; font-weight: 700; display: flex; }
   .summary-bar .txt { color: var(--gv-text-secondary); }
   .summary-bar strong { color: var(--gv-text); }
 
@@ -206,7 +208,7 @@ const STYLES = `
   /* ---- Animazioni ---- */
   @keyframes gv-pop   { from { opacity: 0; transform: scale(.88); } }
   @keyframes gv-fade  { from { opacity: 0; transform: translateY(-4px); } }
-  @keyframes gv-pulse { 50% { transform: scale(1.03); } }
+  @keyframes gv-glow  { 50% { transform: scale(1.06); box-shadow: 0 10px 32px color-mix(in srgb, var(--gv-accent) 70%, transparent); } }
 
   /* Accessibilità: chi preferisce meno movimento non vede animazioni */
   @media (prefers-reduced-motion: reduce) {
@@ -218,8 +220,6 @@ const STYLES = `
  * 3. Helper
  * ------------------------------------------------------------------ */
 
-// Colore ammesso: solo #RRGGBB (stessa regex del backend).
-const COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 // Icona ammessa: solo "mdi:nome-icona".
 const ICON_RE = /^mdi:[a-z0-9-]+$/;
 // Id ammesso (slug).
@@ -261,15 +261,6 @@ function parseDate(iso) {
   if (typeof iso !== "string" || !DATE_RE.test(iso)) return null;
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d);
-}
-
-// Testo bianco o nero sopra un colore, in base alla luminanza (contrasto WCAG).
-function readableOn(hex) {
-  const [r, g, b] = [1, 3, 5].map((i) => {
-    const v = parseInt(hex.slice(i, i + 2), 16) / 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.4 ? "#1d1d1f" : "#ffffff";
 }
 
 // Crea un elemento con classi e testo (sempre via textContent: niente HTML).
@@ -392,13 +383,6 @@ class GarbageViewCard extends HTMLElement {
     return wrap;
   }
 
-  // Imposta --c e --on-c su un elemento, solo se il colore è valido.
-  _paint(node, color) {
-    if (!COLOR_RE.test(color)) return;
-    node.style.setProperty("--c", color);
-    node.style.setProperty("--on-c", readableOn(color));
-  }
-
   _render() {
     if (!this._config || !this._hass) return;
     const t = this._t();
@@ -443,10 +427,9 @@ class GarbageViewCard extends HTMLElement {
   _buildTile(type, index, highlighted, t) {
     const dist = type.next && Number.isInteger(type.next.days_until) ? type.next.days_until : null;
     const nextDate = type.next ? parseDate(type.next.date) : null;
-    const tile = el("div", "tile" + (highlighted ? " hl" : "") + (dist === 0 ? " today" : ""));
+    const tile = el("div", "tile" + (dist === 0 ? " today" : highlighted ? " next" : ""));
     tile.setAttribute("role", "listitem");
     tile.style.setProperty("--i", String(index)); // ritardo animazione a cascata
-    this._paint(tile, type.color);
 
     tile.append(this._icon(type), el("div", "name", String(type.name || "").slice(0, 40)));
     if (dist !== null && nextDate) {
@@ -486,17 +469,6 @@ class GarbageViewCard extends HTMLElement {
       const cell = el("span", "cell", String(date.getDate()));
       cell.setAttribute("aria-hidden", "true");
 
-      // Giorno con ritiro: cella piena col colore del tipo; più tipi = bande verticali.
-      const colors = items.map((x) => x.color).filter((c) => COLOR_RE.test(c));
-      if (colors.length === 1) {
-        cell.style.background = colors[0];
-        btn.style.setProperty("--on-c", readableOn(colors[0]));
-      } else if (colors.length > 1) {
-        const step = 100 / colors.length;
-        cell.style.background = `linear-gradient(90deg, ${colors.map((c, i) => `${c} ${i * step}% ${(i + 1) * step}%`).join(", ")})`;
-        btn.style.setProperty("--on-c", "#fff");
-        cell.style.textShadow = "0 1px 2px rgba(0,0,0,.6)";
-      }
       btn.append(dow, cell);
 
       // Tocco: seleziona/deseleziona il giorno e mostra il dettaglio.
@@ -527,9 +499,7 @@ class GarbageViewCard extends HTMLElement {
     const ul = el("ul");
     items.forEach((x) => {
       const li = el("li");
-      const dot = el("span", "dot");
-      if (COLOR_RE.test(x.color)) dot.style.setProperty("--c", x.color);
-      li.append(dot, el("span", null, String(x.name).slice(0, 40)));
+      li.append(el("span", "dot"), el("span", null, String(x.name).slice(0, 40)));
       ul.append(li);
     });
     container.append(ul);
@@ -545,7 +515,6 @@ class GarbageViewCard extends HTMLElement {
       bar.append(el("span", "txt", t.nothing_next));
       return bar;
     }
-    this._paint(bar, type.color);
     const txt = el("span", "txt");
     txt.append(`${t.next_label}: `, el("strong", null, String(type.name).slice(0, 40)),
       ` · ${this._shortDate(date)} · ${this._relative(nextItem.days_until, t).toLowerCase()}`);
