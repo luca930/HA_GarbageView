@@ -2,7 +2,13 @@
 
 Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/). / Format based on Keep a Changelog.
 
-## [Unreleased]
+## [0.2.1] - 2026-11-07
+
+### Cambiato / Changed
+- **Il calendario si espande dalla card compatta**, sul posto: niente più vista separata. Sotto la striscia dei giorni c'è solo un piccolo chevron discreto (`aria-label`, `aria-expanded`, tastiera); la card compatta resta com'era: la striscia si chiude e il calendario si apre con un'animazione di altezza; ricliccando si torna alla vista compatta. Tessere, titolo e barra «Prossimo» restano sempre visibili. Con `prefers-reduced-motion` il passaggio è istantaneo. Il calendario viene costruito solo alla prima apertura.
+- Nuova opzione `start_expanded` (calendario già aperto). La vecchia `view: calendar` continua a funzionare come `start_expanded: true`; l'editor visuale ora scrive `start_expanded`. `show_view_toggle: false` nasconde il pulsante.
+- **Default di `days` ora 7** (la settimana corrente; prima 14), sempre impostabile a 7 o 14 anche dall'editor. Chi aveva `days` esplicito nella config non cambia; chi non lo aveva vedrà 7 giorni: per riavere i 14 basta `days: 14`.
+- Test vitest/Playwright e screenshot aggiornati.
 
 ### Novità / Added
 - **Preset per i tipi di rifiuto**: aggiungendo un tipo si sceglie tra Umido, Plastica, Carta, Vetro, Indifferenziato, Sfalci e verde, Lattine e metalli e altri, oppure «Personalizzato…». Nome (italiano/inglese secondo la lingua di HA) e icona vengono precompilati e restano modificabili. / Ready-made presets (name + suggested icon, it/en) when adding a waste type, plus «Custom…».

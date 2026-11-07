@@ -40,7 +40,7 @@ describe("editor visuale", () => {
       entity: "sensor.garbage_view_schedule",
       title: "Raccolta",
       style: "homekit",
-      days: 7,
+      days: 14,
       show_summary: false,
       css: "--gv-radius: 10px",
     });
@@ -48,7 +48,7 @@ describe("editor visuale", () => {
     expect($("input[maxlength='80']").value).toBe("Raccolta");
     expect($("select").value).toBe("homekit");
     expect($("select:nth-of-type(1)").value).toBe("homekit");
-    expect(editor.shadowRoot.querySelectorAll("select")[1].value).toBe("7");
+    expect(editor.shadowRoot.querySelectorAll("select")[1].value).toBe("14");
     expect($("input[type=checkbox]").checked).toBe(false);
     expect($("textarea").value).toBe("--gv-radius: 10px");
   });
@@ -93,9 +93,9 @@ describe("editor visuale", () => {
   it("days e show_summary vengono salvati quando cambiano", () => {
     const { editor, events } = mountEditor();
     const selects = editor.shadowRoot.querySelectorAll("select");
-    choose(selects[1], "7");
-    expect(events.at(-1).days).toBe(7);
-    choose(selects[1], "14"); // torna al default: il campo sparisce
+    choose(selects[1], "14");
+    expect(events.at(-1).days).toBe(14);
+    choose(selects[1], "7"); // torna al default: il campo sparisce
     expect(events.at(-1)).not.toHaveProperty("days");
     const check = editor.shadowRoot.querySelector("input[type=checkbox]");
     check.checked = false;
@@ -137,23 +137,29 @@ describe("editor: opzioni del calendario", () => {
   const field = (editor, label) =>
     [...editor.shadowRoot.querySelectorAll("label.field")].find((l) => l.textContent.startsWith(label))?.querySelector("select");
 
-  it("mostra i valori della config", () => {
+  const check = (editor, text) =>
+    [...editor.shadowRoot.querySelectorAll("label.check")].find((l) => l.textContent.includes(text))?.querySelector("input");
+
+  it("mostra i valori della config (view: calendar vale come start_expanded)", () => {
     const { editor } = mountEditor({ entity: "sensor.x", view: "calendar", calendar_mode: "month", show_view_toggle: false });
-    expect(field(editor, "Vista iniziale").value).toBe("calendar");
+    expect(check(editor, "già espanso").checked).toBe(true);
     expect(field(editor, "Periodo iniziale").value).toBe("month");
-    const toggle = [...editor.shadowRoot.querySelectorAll("label.check")].find((l) => l.textContent.includes("interruttore"));
-    expect(toggle.querySelector("input").checked).toBe(false);
+    expect(check(editor, "pulsante").checked).toBe(false);
   });
 
-  it("salva view e calendar_mode solo se diversi dal default", () => {
-    const { editor, events } = mountEditor();
-    choose(field(editor, "Vista iniziale"), "calendar");
-    expect(events.at(-1).view).toBe("calendar");
+  it("salva start_expanded e calendar_mode solo se diversi dal default, e toglie view", () => {
+    const { editor, events } = mountEditor({ entity: "sensor.x", view: "calendar" });
+    const exp = check(editor, "già espanso");
+    exp.checked = false;
+    exp.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(events.at(-1)).not.toHaveProperty("view");
+    expect(events.at(-1)).not.toHaveProperty("start_expanded");
+    exp.checked = true;
+    exp.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(events.at(-1).start_expanded).toBe(true);
     choose(field(editor, "Periodo iniziale"), "next_week");
     expect(events.at(-1).calendar_mode).toBe("next_week");
-    choose(field(editor, "Vista iniziale"), "compact");
     choose(field(editor, "Periodo iniziale"), "week");
-    expect(events.at(-1)).not.toHaveProperty("view");
     expect(events.at(-1)).not.toHaveProperty("calendar_mode");
     expect(events.at(-1)).not.toHaveProperty("show_view_toggle");
   });
