@@ -23,6 +23,13 @@
           "notifications": "Mobile notifications"
         }
       },
+      "preset": {
+        "title": "New waste type",
+        "description": "Pick a ready-made type to prefill name and icon (you can change both), or choose Custom.",
+        "data": {
+          "preset": "Type"
+        }
+      },
       "details": {
         "title": "Waste type",
         "description": "Name, icon and how often it is collected.",
@@ -32,7 +39,7 @@
           "rule_type": "Schedule"
         },
         "data_description": {
-          "icon": "Material Design icon, e.g. mdi:food-apple"
+          "icon": "Search the list, or type any Material Design icon, e.g. mdi:food-apple (browse them at pictogrammers.com/library/mdi)"
         }
       },
       "rule_weekly": {
@@ -153,6 +160,23 @@
       "options": {
         "today": "Today",
         "tomorrow": "Tomorrow (evening reminder)"
+      }
+    },
+    "preset": {
+      "options": {
+        "organic": "Organic waste",
+        "plastic": "Plastic",
+        "paper": "Paper",
+        "glass": "Glass",
+        "residual": "General waste",
+        "garden": "Garden waste",
+        "metal": "Cans and metals",
+        "plastic_metal": "Plastic and cans",
+        "bulky": "Bulky waste",
+        "oil": "Used oil",
+        "textiles": "Textiles",
+        "batteries": "Batteries",
+        "custom": "Custom…"
       }
     }
   },

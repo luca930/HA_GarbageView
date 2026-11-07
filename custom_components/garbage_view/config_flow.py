@@ -11,7 +11,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers import selector
+from homeassistant.helpers import selector, translation
 
 from .const import (
     CONF_NOTIFICATIONS,
@@ -35,6 +35,7 @@ from .const import (
     RULE_TYPES,
     RULE_WEEKLY,
 )
+from .presets import CUSTOM_PRESET, PRESET_ICONS, PRESET_OPTIONS
 from .validation import (
     ValidationError,
     build_type,
@@ -63,6 +64,13 @@ _NTH = selector.SelectSelector(
         options=["1", "2", "3", "4", "last"],  # "-1" non è una chiave di traduzione valida (hassfest)
         mode=selector.SelectSelectorMode.DROPDOWN,
         translation_key="nth",
+    )
+)
+_PRESET = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=PRESET_OPTIONS,
+        mode=selector.SelectSelectorMode.DROPDOWN,
+        translation_key="preset",
     )
 )
 _RULE_TYPE = selector.SelectSelector(
@@ -176,7 +184,29 @@ class GarbageViewOptionsFlow(config_entries.OptionsFlow):
         if len(self._types) >= MAX_TYPES:
             return self.async_abort(reason="max_types")
         self._editing = None
-        return await self.async_step_details(user_input)
+        return await self.async_step_preset(user_input)
+
+    async def async_step_preset(self, user_input: dict[str, Any] | None = None):
+        """Scelta di un preset (nome + icona precompilati) o di «personalizzato»."""
+        if user_input is not None:
+            preset = user_input.get("preset")
+            self._draft = {}
+            if preset in PRESET_ICONS:  # valori sconosciuti ricadono su «personalizzato»
+                self._draft = {"name": await self._preset_name(preset), "icon": PRESET_ICONS[preset]}
+            return await self.async_step_details()
+        schema = vol.Schema({vol.Required("preset", default=CUSTOM_PRESET): _PRESET})
+        return self.async_show_form(step_id="preset", data_schema=schema)
+
+    async def _preset_name(self, preset: str) -> str:
+        """Nome localizzato del preset, ricavato dalle traduzioni del selettore."""
+        key = f"component.{DOMAIN}.selector.preset.options.{preset}"
+        for language in (self.hass.config.language, "en"):
+            names = await translation.async_get_translations(
+                self.hass, language, "selector", [DOMAIN]
+            )
+            if isinstance(names.get(key), str):
+                return names[key]
+        return preset.replace("_", " ").capitalize()
 
     async def async_step_edit_type(self, user_input: dict[str, Any] | None = None):
         if user_input is not None:

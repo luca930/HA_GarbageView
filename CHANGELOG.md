@@ -2,6 +2,15 @@
 
 Formato basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/). / Format based on Keep a Changelog.
 
+## [Unreleased]
+
+### Novità / Added
+- **Preset per i tipi di rifiuto**: aggiungendo un tipo si sceglie tra Umido, Plastica, Carta, Vetro, Indifferenziato, Sfalci e verde, Lattine e metalli e altri, oppure «Personalizzato…». Nome (italiano/inglese secondo la lingua di HA) e icona vengono precompilati e restano modificabili. / Ready-made presets (name + suggested icon, it/en) when adding a waste type, plus «Custom…».
+- **Icona**: selettore icone di Home Assistant con ricerca e anteprima; resta possibile scrivere qualsiasi icona `mdi:` se non è in elenco (validata con `^mdi:[a-z0-9-]+$`). / Icon picker with search and preview; any typed `mdi:` icon is still accepted.
+
+### Compatibilità / Compatibility
+- I tipi già salvati non cambiano (stesso formato dati).
+
 ## [0.2.0] - 2026-11-07
 
 ### Novità / Added
