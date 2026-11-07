@@ -321,6 +321,11 @@ class GarbageViewCard extends HTMLElement {
 
   getCardSize() { return 4; }
 
+  // HA chiama questo metodo per aprire l'editor visuale della card.
+  static getConfigElement() {
+    return document.createElement("garbage-view-card-editor");
+  }
+
   static getStubConfig(hass) {
     const entity = hass && Object.keys(hass.states).find((e) => e.startsWith("sensor.garbage_view"));
     return { entity: entity || "sensor.garbage_view_schedule", style: "apple", days: 14, show_summary: true };
@@ -516,6 +521,236 @@ class GarbageViewCard extends HTMLElement {
     bar.append(this._icon(type), txt);
     return bar;
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * 5. Editor visuale
+ *
+ * HA lo crea con `getConfigElement()`, gli passa la config con `setConfig()`
+ * e ascolta l'evento "config-changed" per salvare le modifiche.
+ *
+ * Usiamo solo controlli HTML nativi (input, select, checkbox): funzionano
+ * ovunque e sono accessibili di serie. Il form viene costruito UNA volta sola;
+ * dopo, aggiorniamo i valori senza ricreare i campi, altrimenti l'utente
+ * perderebbe il cursore mentre scrive.
+ * ------------------------------------------------------------------ */
+const EDITOR_STRINGS = {
+  it: {
+    entity: "Entità",
+    entity_hint: "Il sensore creato dall'integrazione (sensor.garbage_view_schedule).",
+    title: "Titolo (facoltativo)",
+    style: "Stile",
+    apple: "Apple",
+    homekit: "HomeKit",
+    days: "Giorni mostrati nella striscia",
+    days_7: "7 giorni",
+    days_14: "14 giorni",
+    show_summary: "Mostra la barra \"Prossimo\"",
+    css: "Personalizzazione CSS (facoltativa)",
+    css_hint: (ok, total) =>
+      total === 0
+        ? "Esempio: --gv-radius: 18px; --gv-accent: #34c759"
+        : `${ok} di ${total} variabili valide. Sono ammesse solo variabili --gv-* con valori semplici.`,
+    entity_missing: "Scegli un'entità.",
+  },
+  en: {
+    entity: "Entity",
+    entity_hint: "The sensor created by the integration (sensor.garbage_view_schedule).",
+    title: "Title (optional)",
+    style: "Style",
+    apple: "Apple",
+    homekit: "HomeKit",
+    days: "Days shown in the strip",
+    days_7: "7 days",
+    days_14: "14 days",
+    show_summary: "Show the \"Next\" bar",
+    css: "CSS customization (optional)",
+    css_hint: (ok, total) =>
+      total === 0
+        ? "Example: --gv-radius: 18px; --gv-accent: #34c759"
+        : `${ok} of ${total} variables valid. Only --gv-* variables with simple values are allowed.`,
+    entity_missing: "Choose an entity.",
+  },
+};
+
+const EDITOR_STYLES = `
+  :host { display: block; font-family: var(--paper-font-body1_-_font-family, sans-serif); }
+  .form { display: grid; gap: 16px; }
+  label.field { display: grid; gap: 6px; font-size: .85rem; color: var(--secondary-text-color, #6e6e73); }
+  input[type="text"], select, textarea {
+    font: inherit; font-size: 1rem; color: var(--primary-text-color, #1d1d1f);
+    background: var(--card-background-color, #fff);
+    border: 1px solid var(--divider-color, #c7c7cc); border-radius: 10px;
+    padding: 10px 12px; min-height: 44px; box-sizing: border-box; width: 100%;
+  }
+  textarea { min-height: 88px; font-family: ui-monospace, monospace; font-size: .9rem; resize: vertical; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 3px solid var(--primary-color, #0a84ff); outline-offset: 1px;
+  }
+  label.check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 1rem; color: var(--primary-text-color, #1d1d1f); }
+  label.check input { width: 22px; height: 22px; accent-color: var(--primary-color, #0a84ff); }
+  .hint { font-size: .78rem; color: var(--secondary-text-color, #6e6e73); }
+  .hint.error { color: var(--error-color, #d70015); }
+`;
+
+class GarbageViewCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this._root = this.attachShadow({ mode: "open" });
+    this._config = {};
+    this._built = false;
+  }
+
+  setConfig(config) {
+    this._config = { ...config };
+    if (this._built) this._sync();
+    else this._build();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (this._built) this._fillEntities();
+  }
+
+  _t() {
+    const lang = ((this._hass && (this._hass.locale?.language || this._hass.language)) || "it").slice(0, 2);
+    return EDITOR_STRINGS[lang] || EDITOR_STRINGS.en;
+  }
+
+  // Crea un campo "etichetta + controllo" e lo aggiunge al form.
+  _field(labelText, control) {
+    const label = el("label", "field");
+    label.append(el("span", null, labelText), control);
+    this._form.append(label);
+    return label;
+  }
+
+  _build() {
+    const t = this._t();
+    const style = document.createElement("style");
+    style.textContent = EDITOR_STYLES;
+    this._form = el("div", "form");
+
+    // Entità: input di testo con suggerimenti (<datalist>), così si può anche scrivere a mano.
+    this._entity = el("input");
+    this._entity.type = "text";
+    this._entity.setAttribute("list", "gv-entities");
+    this._entity.setAttribute("autocomplete", "off");
+    this._entity.setAttribute("spellcheck", "false");
+    this._datalist = el("datalist");
+    this._datalist.id = "gv-entities";
+    this._entityHint = el("div", "hint", t.entity_hint);
+    const entityLabel = this._field(t.entity, this._entity);
+    entityLabel.append(this._datalist, this._entityHint);
+
+    this._title = el("input");
+    this._title.type = "text";
+    this._title.maxLength = 80;
+    this._field(t.title, this._title);
+
+    this._styleSel = this._select([["apple", t.apple], ["homekit", t.homekit]]);
+    this._field(t.style, this._styleSel);
+
+    this._days = this._select([["14", t.days_14], ["7", t.days_7]]);
+    this._field(t.days, this._days);
+
+    this._showSummary = el("input");
+    this._showSummary.type = "checkbox";
+    const check = el("label", "check");
+    check.append(this._showSummary, el("span", null, t.show_summary));
+    this._form.append(check);
+
+    this._css = el("textarea");
+    this._css.maxLength = 2000;
+    this._css.setAttribute("spellcheck", "false");
+    this._cssHint = el("div", "hint");
+    const cssLabel = this._field(t.css, this._css);
+    cssLabel.append(this._cssHint);
+
+    // Ogni modifica genera un nuovo config (vedi _emit).
+    this._entity.addEventListener("input", () => this._emit());
+    this._title.addEventListener("input", () => this._emit());
+    this._styleSel.addEventListener("change", () => this._emit());
+    this._days.addEventListener("change", () => this._emit());
+    this._showSummary.addEventListener("change", () => this._emit());
+    this._css.addEventListener("input", () => this._emit());
+
+    this._root.replaceChildren(style, this._form);
+    this._built = true;
+    this._fillEntities();
+    this._sync();
+  }
+
+  _select(options) {
+    const sel = el("select");
+    for (const [value, label] of options) {
+      const opt = el("option", null, label);
+      opt.value = value;
+      sel.append(opt);
+    }
+    return sel;
+  }
+
+  // Suggerisce le entità: prima quelle di Garbage View, poi tutti i sensori.
+  _fillEntities() {
+    if (!this._hass || !this._hass.states) return;
+    const ids = Object.keys(this._hass.states).filter((id) => id.startsWith("sensor."));
+    const mine = ids.filter((id) => this._hass.states[id]?.attributes?.schema_version !== undefined);
+    const list = mine.length ? mine : ids;
+    this._datalist.replaceChildren(
+      ...list.slice(0, 200).map((id) => {
+        const opt = el("option");
+        opt.value = id;
+        return opt;
+      })
+    );
+  }
+
+  // Copia la config nei campi (usata all'apertura e se HA cambia la config da fuori).
+  _sync() {
+    const c = this._config;
+    // Non toccare il campo che l'utente sta modificando in questo momento.
+    const active = this._root.activeElement;
+    if (active !== this._entity) this._entity.value = c.entity || "";
+    if (active !== this._title) this._title.value = c.title || "";
+    this._styleSel.value = c.style === "homekit" ? "homekit" : "apple";
+    this._days.value = Number(c.days) === 7 ? "7" : "14";
+    this._showSummary.checked = c.show_summary !== false;
+    if (active !== this._css) this._css.value = c.css || "";
+    this._updateHints();
+  }
+
+  _updateHints() {
+    const t = this._t();
+    const raw = this._css.value;
+    const total = raw.split(";").filter((d) => d.includes(":")).length;
+    const ok = parseSafeCss(raw).length;
+    this._cssHint.textContent = t.css_hint(ok, total);
+    this._cssHint.classList.toggle("error", total > ok);
+    const missing = !this._entity.value.trim();
+    this._entityHint.textContent = missing ? t.entity_missing : t.entity_hint;
+    this._entityHint.classList.toggle("error", missing);
+    this._entity.setAttribute("aria-invalid", String(missing));
+  }
+
+  // Costruisce la nuova config (senza campi vuoti) e avvisa HA.
+  _emit() {
+    const config = { ...this._config, type: this._config.type || "custom:garbage-view-card" };
+    const set = (key, value, keep) => (keep ? (config[key] = value) : delete config[key]);
+    set("entity", this._entity.value.trim(), true);
+    set("title", this._title.value, this._title.value.trim() !== "");
+    set("style", this._styleSel.value, true);
+    set("days", 7, this._days.value === "7"); // 14 è il default
+    set("show_summary", false, !this._showSummary.checked); // true è il default
+    set("css", this._css.value, this._css.value.trim() !== "");
+    this._config = config;
+    this._updateHints();
+    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+  }
+}
+
+if (!customElements.get("garbage-view-card-editor")) {
+  customElements.define("garbage-view-card-editor", GarbageViewCardEditor);
 }
 
 if (!customElements.get("garbage-view-card")) {

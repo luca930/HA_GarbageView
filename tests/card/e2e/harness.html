@@ -1,0 +1,53 @@
+<!doctype html>
+<!--
+  Pagina di prova per i test Playwright: simula quel che fa Home Assistant
+  (carica la card, le passa config e `hass`). Non fa parte dell'integrazione.
+-->
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Garbage View harness</title>
+  <style>
+    body { margin: 0; padding: 20px; font-family: system-ui, sans-serif; background: #e9e9ee; }
+    body.dark { background: #000; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    // <ha-icon> esiste solo dentro Home Assistant: qui ne mettiamo una versione finta
+    // (una lettera in un cerchio) così gli screenshot mostrano un'icona.
+    customElements.define("ha-icon", class extends HTMLElement {
+      connectedCallback() {
+        this.style.cssText = "display:inline-flex;width:28px;height:28px;border:3px solid currentColor;border-radius:50%;box-sizing:border-box";
+      }
+    });
+  </script>
+  <script src="../../../custom_components/garbage_view/frontend/garbage-view-card.js"></script>
+  <script>
+    // Chiamata dai test: window.mountCard(config, state, {dark}) crea la card come farebbe HA.
+    window.mountCard = (config, state, { dark = false, editor = false } = {}) => {
+      document.body.classList.toggle("dark", dark);
+      const hass = { states: { "sensor.garbage_view_schedule": state }, language: "it", themes: { darkMode: dark } };
+      const root = document.getElementById("root");
+      root.replaceChildren();
+      const card = document.createElement("garbage-view-card");
+      card.setConfig(config);
+      card.hass = hass;
+      root.append(card);
+      if (editor) {
+        // Come HA: l'editor emette config-changed e la card riceve la nuova config.
+        const ed = document.createElement("garbage-view-card-editor");
+        ed.setConfig(config);
+        ed.hass = hass;
+        ed.addEventListener("config-changed", (e) => {
+          window.lastConfig = e.detail.config;
+          card.setConfig(e.detail.config);
+        });
+        root.append(ed);
+      }
+    };
+  </script>
+</body>
+</html>
