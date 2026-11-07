@@ -1327,7 +1327,8 @@ class GarbageViewCardEditor extends HTMLElement {
     this._styleSel.value = c.style === "homekit" ? "homekit" : "apple";
     this._days.value = Number(c.days) === 14 ? "14" : "7";
     if (active !== this._tileMin) this._tileMin.value = clampTileMin(c.tile_min_width) ?? "";
-    if (active !== this._fontScale) this._fontScale.value = clampFontScale(c.font_scale) === 1 ? "" : clampFontScale(c.font_scale);
+    const fs = clampFontScale(c.font_scale);
+    if (active !== this._fontScale) this._fontScale.value = fs === 1 ? "" : fs;
     this._startExpanded.checked = c.start_expanded === true || (c.start_expanded === undefined && c.view === "calendar");
     this._mode.value = CAL_MODES.includes(c.calendar_mode) ? c.calendar_mode : "week";
     this._showToggle.checked = c.show_view_toggle !== false;

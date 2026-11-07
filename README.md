@@ -42,7 +42,7 @@ days: 7                                # 7 (default, settimana corrente) | 14
 start_expanded: false                  # true = calendario già aperto (sostituisce `view: calendar`)
 calendar_mode: week                    # week | next_week | month (periodo iniziale)
 show_view_toggle: true                 # piccolo chevron per espandere il calendario
-tile_min_width: 96                     # larghezza minima delle tessere in px (60–240); vuoto = automatica (96 Apple / 108 HomeKit)
+# tile_min_width:                      # larghezza minima delle tessere in px (60–240); omesso = automatica (96 Apple / 108 HomeKit)
 font_scale: 1                          # dimensione dei testi, 0,8–1,5 (1 = predefinita, già più grande della 0.2.2)
 show_summary: true                     # barra «Prossimo»
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # opzionale
@@ -87,7 +87,7 @@ Lo stile è fatto di variabili CSS pubbliche:
 |---|---|
 | `--gv-font` | font |
 | `--gv-bg` / `--gv-text` / `--gv-text-secondary` | sfondo e testi |
-| `--gv-tile-bg` / `--gv-tile-size` / `--gv-tile-min-width` / `--gv-font-scale` | tessere (dimensione icona/altezza e larghezza minima) |
+| `--gv-tile-bg` / `--gv-tile-size` / `--gv-tile-min-width` / `--gv-font-scale` | tessere (dimensione icona/altezza e larghezza minima); `--gv-font-scale` = moltiplicatore dei testi (0,8–1,5) |
 | `--gv-radius` / `--gv-gap` / `--gv-shadow` | forme e spazi |
 | `--gv-accent` | colore di evidenziazione |
 | `--gv-anim-duration` | durata animazioni |
@@ -156,7 +156,7 @@ days: 7                                # 7 (default, current week) | 14
 start_expanded: false                  # true = calendar already open (replaces `view: calendar`)
 calendar_mode: week                    # week | next_week | month (initial period)
 show_view_toggle: true                 # small chevron to expand the calendar
-tile_min_width: 96                     # minimum tile width in px (60–240); empty = automatic (96 Apple / 108 HomeKit)
+# tile_min_width:                      # minimum tile width in px (60–240); omitted = automatic (96 Apple / 108 HomeKit)
 font_scale: 1                          # text size, 0.8–1.5 (1 = default, already larger than 0.2.2)
 show_summary: true                     # "Next" bar
 css: "--gv-radius: 18px; --gv-accent: #34c759"   # optional
