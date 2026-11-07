@@ -11,6 +11,7 @@ from typing import Any
 
 SCHEMA_VERSION = 1
 NEXT_LOOKAHEAD_DAYS = 400
+HORIZON_DAYS = 14
 
 
 def _monday(day: date) -> date:
@@ -64,34 +65,50 @@ def next_occurrence(
     return None
 
 
-def build_view(types: list[dict[str, Any]], today: date) -> dict[str, Any]:
-    """Costruisce gli attributi del sensore (CONTRACT.md §2)."""
-    week_start = _monday(today)
+def build_view(
+    types: list[dict[str, Any]], today: date, horizon_days: int = HORIZON_DAYS
+) -> dict[str, Any]:
+    """Costruisce gli attributi del sensore (CONTRACT.md §2).
+
+    `days` è una finestra mobile di `horizon_days` giorni che parte da oggi.
+    """
     days = []
-    for i in range(7):
-        day = week_start + timedelta(days=i)
+    for i in range(horizon_days):
+        day = today + timedelta(days=i)
         days.append(
             {
                 "date": day.isoformat(),
                 "weekday": day.weekday(),
-                "is_today": day == today,
+                "is_today": i == 0,
                 "items": [t["id"] for t in types if occurs_on(t["rule"], day)],
             }
         )
+
+    out_types = []
+    next_item: dict[str, Any] | None = None
+    for t in types:
+        entry = {k: t[k] for k in ("id", "name", "icon", "color")}
+        nxt = next_occurrence(t["rule"], today)
+        if nxt is None:
+            entry["next"] = None
+        else:
+            until = (nxt - today).days
+            entry["next"] = {"date": nxt.isoformat(), "days_until": until}
+            # A parità di giorni vince il primo in `types` (confronto stretto).
+            if next_item is None or until < next_item["days_until"]:
+                next_item = {"id": t["id"], "date": nxt.isoformat(), "days_until": until}
+        out_types.append(entry)
+
     return {
         "schema_version": SCHEMA_VERSION,
         "today": today.isoformat(),
         "weekday": today.weekday(),
-        "week_start": week_start.isoformat(),
-        "types": [
-            {k: t[k] for k in ("id", "name", "icon", "color")} for t in types
-        ],
-        "today_items": next(d["items"] for d in days if d["is_today"]),
+        "horizon_days": horizon_days,
+        "types": out_types,
+        "today_items": days[0]["items"] if days else [],
         "days": days,
-        "next": {
-            t["id"]: (
-                n.isoformat() if (n := next_occurrence(t["rule"], today)) else None
-            )
-            for t in types
-        },
+        "next_item": next_item,
     }
+
+
+week_view = build_view
