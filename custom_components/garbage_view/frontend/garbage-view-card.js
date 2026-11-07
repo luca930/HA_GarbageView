@@ -16,7 +16,7 @@
  * dopo aver validato il valore con una regex.
  */
 
-const CARD_VERSION = "0.1.0";
+const CARD_VERSION = "0.2.0";
 const SUPPORTED_SCHEMA = 1;
 // Periodi iniziali del calendario grande.
 const CAL_MODES = ["week", "next_week", "month"];
