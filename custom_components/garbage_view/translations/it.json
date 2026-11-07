@@ -1,0 +1,1 @@
+{ "config": { "step": { "user": { "title": "Garbage View", "description": "Crea l'integrazione. Aggiungi i tipi di rifiuto dalle opzioni." } }, "abort": { "already_configured": "Già configurato." } } }
